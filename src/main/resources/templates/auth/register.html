@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Register — JobSpark</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <style>
+    .register-page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+    }
+    .register-left {
+      background: linear-gradient(135deg,
+        #1E1030 0%, #2D1B69 50%, #3B2282 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .register-left::before {
+      content: '';
+      position: absolute;
+      top: -100px; right: -100px;
+      width: 350px; height: 350px;
+      background: radial-gradient(circle,
+        rgba(217,119,6,0.2), transparent 70%);
+      border-radius: 50%;
+    }
+    .register-left::after {
+      content: '';
+      position: absolute;
+      bottom: -80px; left: -80px;
+      width: 280px; height: 280px;
+      background: radial-gradient(circle,
+        rgba(109,40,217,0.3), transparent 70%);
+      border-radius: 50%;
+    }
+    .register-left-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+    .register-right {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 3rem;
+      background: #fff;
+      overflow-y: auto;
+    }
+    .register-form-box { width: 100%; max-width: 500px; }
+    @media (max-width: 768px) {
+      .register-page { grid-template-columns: 1fr; }
+      .register-left  { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div th:replace="~{fragments/navbar :: loading}"></div>
+
+<div class="register-page">
+
+  <!-- LEFT SIDE -->
+  <div class="register-left">
+    <div class="register-left-content">
+
+      <!-- Logo -->
+      <div style="font-size:2rem; font-weight:900; color:#fff;
+                  letter-spacing:-1px; margin-bottom:3rem;">
+        <span style="background:linear-gradient(135deg,#2D1B69,#D97706);
+                     padding:10px 16px; border-radius:14px;
+                     margin-right:8px;">⚡</span>
+        Job<span style="color:#D97706;">Spark</span>
+      </div>
+
+      <h2 style="font-size:2rem; font-weight:900; color:#fff;
+                 margin-bottom:1rem; letter-spacing:-1px;">
+        Join JobSpark! 🚀
+      </h2>
+      <p style="color:rgba(255,255,255,0.6); font-size:1rem;
+                line-height:1.7; max-width:300px;">
+        Create your free account and start your journey
+        toward your dream career today.
+      </p>
+
+      <!-- Benefits -->
+      <div style="margin-top:2.5rem; display:flex;
+                  flex-direction:column; gap:1rem; max-width:300px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:36px; height:36px; border-radius:10px;
+                      background:rgba(217,119,6,0.3);
+                      display:flex; align-items:center;
+                      justify-content:center; font-size:1rem;
+                      flex-shrink:0;">✅</div>
+          <div>
+            <p style="color:#fff; font-size:0.875rem; font-weight:600;">
+              Free Forever
+            </p>
+            <p style="color:rgba(255,255,255,0.5); font-size:0.78rem;">
+              No hidden charges ever
+            </p>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:36px; height:36px; border-radius:10px;
+                      background:rgba(109,40,217,0.3);
+                      display:flex; align-items:center;
+                      justify-content:center; font-size:1rem;
+                      flex-shrink:0;">🔐</div>
+          <div>
+            <p style="color:#fff; font-size:0.875rem; font-weight:600;">
+              OTP Verified
+            </p>
+            <p style="color:rgba(255,255,255,0.5); font-size:0.78rem;">
+              Email verified registration
+            </p>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:36px; height:36px; border-radius:10px;
+                      background:rgba(16,185,129,0.3);
+                      display:flex; align-items:center;
+                      justify-content:center; font-size:1rem;
+                      flex-shrink:0;">🎯</div>
+          <div>
+            <p style="color:#fff; font-size:0.875rem; font-weight:600;">
+              Smart Job Matching
+            </p>
+            <p style="color:rgba(255,255,255,0.5); font-size:0.78rem;">
+              Find jobs that match your skills
+            </p>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:36px; height:36px; border-radius:10px;
+                      background:rgba(245,158,11,0.3);
+                      display:flex; align-items:center;
+                      justify-content:center; font-size:1rem;
+                      flex-shrink:0;">📊</div>
+          <div>
+            <p style="color:#fff; font-size:0.875rem; font-weight:600;">
+              Track Applications
+            </p>
+            <p style="color:rgba(255,255,255,0.5); font-size:0.78rem;">
+              Real time application tracking
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE -->
+  <div class="register-right">
+    <div class="register-form-box">
+
+      <!-- Back link -->
+      <a th:href="@{/}"
+         style="color:var(--text-muted); font-size:0.875rem;
+                text-decoration:none; display:inline-flex;
+                align-items:center; gap:6px; margin-bottom:1.5rem;
+                transition:color 0.2s;"
+         onmouseover="this.style.color='var(--primary)'"
+         onmouseout="this.style.color='var(--text-muted)'">
+        ← Back to Home
+      </a>
+
+      <!-- Header -->
+      <h2 style="font-size:1.8rem; font-weight:900;
+                 margin-bottom:0.25rem; letter-spacing:-0.5px;
+                 color:#1E1030;">
+        Create Account
+      </h2>
+      <p style="color:var(--text-muted); margin-bottom:1.5rem;
+                font-size:0.9rem;">
+        Fill in your details — we'll verify your email with OTP!
+      </p>
+
+      <!-- Steps Indicator -->
+      <div style="display:flex; align-items:center;
+                  gap:8px; margin-bottom:2rem;">
+        <div style="width:32px; height:32px; border-radius:50%;
+                    background:#2D1B69; color:#fff;
+                    display:flex; align-items:center;
+                    justify-content:center; font-size:0.8rem;
+                    font-weight:700; flex-shrink:0;">1</div>
+        <div style="font-size:0.8rem; font-weight:600;
+                    color:#2D1B69;">Fill Details</div>
+        <div style="flex:1; height:2px; background:#DDD6FE;
+                    border-radius:2px;"></div>
+        <div style="width:32px; height:32px; border-radius:50%;
+                    background:#EDE9FE; color:#9CA3AF;
+                    display:flex; align-items:center;
+                    justify-content:center; font-size:0.8rem;
+                    font-weight:700; flex-shrink:0;">2</div>
+        <div style="font-size:0.8rem; font-weight:600;
+                    color:#9CA3AF;">Verify OTP</div>
+        <div style="flex:1; height:2px; background:#DDD6FE;
+                    border-radius:2px;"></div>
+        <div style="width:32px; height:32px; border-radius:50%;
+                    background:#EDE9FE; color:#9CA3AF;
+                    display:flex; align-items:center;
+                    justify-content:center; font-size:0.8rem;
+                    font-weight:700; flex-shrink:0;">3</div>
+        <div style="font-size:0.8rem; font-weight:600;
+                    color:#9CA3AF;">Done!</div>
+      </div>
+
+      <!-- Alerts -->
+      <div th:if="${emailError}"
+           class="alert alert-danger"
+           th:text="${emailError}"></div>
+      <div th:if="${passwordError}"
+           class="alert alert-danger"
+           th:text="${passwordError}"></div>
+
+      <!-- Form — sends to send-otp endpoint -->
+      <form th:action="@{/register/send-otp}" method="post">
+
+        <!-- Role Selection -->
+        <div style="margin-bottom:1.5rem;">
+          <label style="display:block; font-size:0.875rem;
+                        font-weight:700; margin-bottom:10px;
+                        color:#1E1030;">
+            I am registering as
+          </label>
+          <div style="display:grid;
+                      grid-template-columns:1fr 1fr; gap:10px;">
+            <label style="cursor:pointer;">
+              <input type="radio" name="roleSelect"
+                     value="STUDENT" style="display:none;"
+                     onclick="selectRole('STUDENT')">
+              <div id="card-student"
+                   style="border:2px solid #DDD6FE;
+                          border-radius:12px; padding:1rem;
+                          text-align:center; transition:all 0.3s;
+                          background:#fff; color:#1E1030;">
+                <div style="font-size:1.8rem; margin-bottom:6px;">🎓</div>
+                <div style="font-weight:700; font-size:0.875rem;">
+                  Job Seeker
+                </div>
+                <div style="font-size:0.75rem; color:var(--text-muted);
+                            margin-top:2px;">Find your dream job</div>
+              </div>
+            </label>
+            <label style="cursor:pointer;">
+              <input type="radio" name="roleSelect"
+                     value="EMPLOYER" style="display:none;"
+                     onclick="selectRole('EMPLOYER')">
+              <div id="card-employer"
+                   style="border:2px solid #DDD6FE;
+                          border-radius:12px; padding:1rem;
+                          text-align:center; transition:all 0.3s;
+                          background:#fff; color:#1E1030;">
+                <div style="font-size:1.8rem; margin-bottom:6px;">🏢</div>
+                <div style="font-weight:700; font-size:0.875rem;">
+                  Employer
+                </div>
+                <div style="font-size:0.75rem; color:var(--text-muted);
+                            margin-top:2px;">Post jobs and hire</div>
+              </div>
+            </label>
+          </div>
+          <!-- Hidden role field -->
+          <input type="hidden" name="role" id="roleField" value="">
+        </div>
+
+        <!-- Full Name + Phone -->
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" name="fullName"
+                   placeholder="Jane Doe" required>
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="text" name="phone"
+                   placeholder="+91 9876543210">
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+          <label>Email Address *</label>
+          <input type="email" name="email"
+                 placeholder="you@example.com" required>
+          <small class="text-muted">
+            📧 OTP will be sent to this email
+          </small>
+        </div>
+
+        <!-- Location -->
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" name="location"
+                 placeholder="Chennai, Tamil Nadu">
+        </div>
+
+        <!-- Skills — Student Only -->
+        <div class="form-group" id="skillsDiv" style="display:none;">
+          <label>Your Skills</label>
+          <input type="text" name="skills"
+                 placeholder="Java, Spring Boot, MySQL..."
+                 id="skillsInput">
+          <small class="text-muted">Separate with commas</small>
+          <div id="skillsPreview"
+               style="display:flex; flex-wrap:wrap;
+                      gap:6px; margin-top:8px;">
+          </div>
+        </div>
+
+        <!-- Company — Employer Only -->
+        <div class="form-group" id="companyDiv" style="display:none;">
+          <label>Company Name</label>
+          <input type="text" name="companyName"
+                 placeholder="Acme Corp Pvt Ltd">
+        </div>
+
+        <!-- Passwords -->
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Password *</label>
+            <input type="password" name="password"
+                   placeholder="Min 6 characters" required>
+          </div>
+          <div class="form-group">
+            <label>Confirm Password *</label>
+            <input type="password" name="confirmPassword"
+                   placeholder="Repeat password" required>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn btn-primary"
+                style="width:100%; padding:0.85rem;
+                       justify-content:center; font-size:1rem;">
+          Send OTP & Verify Email 📧
+        </button>
+
+      </form>
+
+      <!-- Login Link -->
+      <div style="text-align:center; margin-top:1.5rem;">
+        <p style="color:var(--text-muted); font-size:0.875rem;">
+          Already have an account?
+          <a th:href="@{/login}"
+             style="color:#2D1B69; font-weight:700;
+                    text-decoration:none;">
+            Sign in here
+          </a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Scripts -->
+<div th:replace="~{fragments/navbar :: scripts}"></div>
+
+<script>
+function selectRole(role) {
+  document.getElementById('card-student').style.borderColor  = '#DDD6FE';
+  document.getElementById('card-student').style.background   = '#fff';
+  document.getElementById('card-student').style.boxShadow    = 'none';
+  document.getElementById('card-employer').style.borderColor = '#DDD6FE';
+  document.getElementById('card-employer').style.background  = '#fff';
+  document.getElementById('card-employer').style.boxShadow   = 'none';
+
+  const card = document.getElementById('card-' + role.toLowerCase());
+  card.style.borderColor = '#D97706';
+  card.style.background  = '#FEF3C7';
+  card.style.boxShadow   = '0 4px 15px rgba(217,119,6,0.2)';
+
+  document.getElementById('roleField').value = role;
+  document.getElementById('skillsDiv').style.display  =
+    role === 'STUDENT'  ? 'block' : 'none';
+  document.getElementById('companyDiv').style.display =
+    role === 'EMPLOYER' ? 'block' : 'none';
+}
+
+document.getElementById('skillsInput')
+  ?.addEventListener('input', function() {
+    const preview = document.getElementById('skillsPreview');
+    const skills  = this.value.split(',').filter(s => s.trim() !== '');
+    preview.innerHTML = skills.map(s =>
+      `<span class="badge badge-primary">${s.trim()}</span>`
+    ).join('');
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Applicants — JobSpark</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div th:replace="~{fragments/navbar :: loading}"></div>
+
+<!-- Navbar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<!-- Cover Letter Modal -->
+<div id="coverLetterModal"
+     style="display:none; position:fixed; inset:0;
+            background:rgba(0,0,0,0.6); z-index:9999;
+            align-items:center; justify-content:center;
+            backdrop-filter:blur(4px);">
+  <div style="background:#fff; border-radius:20px;
+              padding:2rem; max-width:600px; width:90%;
+              max-height:80vh; overflow-y:auto;
+              box-shadow:0 20px 60px rgba(0,0,0,0.3);
+              animation:scaleIn 0.3s ease;">
+    <div style="display:flex; justify-content:space-between;
+                align-items:center; margin-bottom:1.5rem;">
+      <div>
+        <p style="color:var(--primary); font-size:0.8rem;
+                  font-weight:700; margin-bottom:4px;">
+          📄 Cover Letter
+        </p>
+        <h3 style="font-size:1.2rem; font-weight:900;"
+            id="modalApplicantName">Applicant Name</h3>
+      </div>
+      <button onclick="closeCoverLetter()"
+              style="background:var(--body-bg); border:none;
+                     width:36px; height:36px; border-radius:50%;
+                     cursor:pointer; font-size:1.1rem;
+                     display:flex; align-items:center;
+                     justify-content:center; transition:all 0.2s;"
+              onmouseover="this.style.background='#FEE2E2'"
+              onmouseout="this.style.background='var(--body-bg)'">
+        ✕
+      </button>
+    </div>
+    <hr style="border:none; border-top:2px solid var(--border);
+               margin-bottom:1.5rem;">
+    <div id="modalCoverLetter"
+         style="color:var(--text-muted); line-height:1.9;
+                font-size:0.9rem; white-space:pre-wrap;
+                background:var(--body-bg); padding:1.25rem;
+                border-radius:12px;
+                border:2px solid rgba(124,58,237,0.1);">
+    </div>
+    <button onclick="closeCoverLetter()"
+            class="btn btn-primary"
+            style="width:100%; justify-content:center;
+                   margin-top:1.5rem;">
+      Close
+    </button>
+  </div>
+</div>
+
+<div class="container mt-2">
+
+  <!-- Header -->
+  <div class="flex-between mb-2">
+    <div>
+      <a th:href="@{/employer/dashboard}"
+         style="color:var(--text-muted); font-size:0.875rem;
+                text-decoration:none; display:inline-flex;
+                align-items:center; gap:6px; margin-bottom:8px;
+                transition:color 0.2s;"
+         onmouseover="this.style.color='var(--primary)'"
+         onmouseout="this.style.color='var(--text-muted)'">
+        ← Back to Dashboard
+      </a>
+      <p style="color:var(--primary); font-size:0.875rem;
+                font-weight:600; margin-bottom:4px;">
+        👥 Applicant Management
+      </p>
+      <h2 style="font-size:1.8rem; font-weight:900; letter-spacing:-0.5px;"
+          th:text="${job.title}">Job Title</h2>
+      <p class="text-muted"
+         th:text="${job.employer.companyName}">Company</p>
+    </div>
+  </div>
+
+  <!-- Alert -->
+  <div th:if="${param.updated}" class="alert alert-success">
+    ✅ Application status updated successfully!
+  </div>
+
+  <!-- Job Info Card -->
+  <div class="card mb-2"
+       style="background:linear-gradient(135deg,var(--dark),var(--dark2));
+              color:#fff;">
+    <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:center;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <span class="badge badge-primary"
+              th:text="${job.category}">Category</span>
+        <span class="badge badge-pink"
+              th:text="${job.jobType}">Type</span>
+      </div>
+      <span style="opacity:0.7; font-size:0.875rem;">
+        📍 <span th:text="${job.location}">Location</span>
+      </span>
+      <span style="opacity:0.7; font-size:0.875rem;">
+        💼 <span th:text="${job.experience}">Experience</span>
+      </span>
+      <span style="opacity:0.7; font-size:0.875rem;">
+        💰 <span th:text="${job.salary}">Salary</span>
+      </span>
+      <span th:if="${job.expiryDate != null}"
+            style="opacity:0.7; font-size:0.875rem;">
+        📅 Deadline:
+        <span th:text="${#temporals.format(job.expiryDate,'dd MMM yyyy')}">
+        </span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid mb-2">
+    <div class="stat-card">
+      <h3 th:text="${stats.total}">0</h3>
+      <p>Total Applicants</p>
+      <div class="stat-icon">👥</div>
+    </div>
+    <div class="stat-card green">
+      <h3 th:text="${stats.shortlisted}">0</h3>
+      <p>Shortlisted</p>
+      <div class="stat-icon">⭐</div>
+    </div>
+    <div class="stat-card orange">
+      <h3 th:text="${stats.total - stats.shortlisted - stats.rejected}">0</h3>
+      <p>Pending Review</p>
+      <div class="stat-icon">⏳</div>
+    </div>
+    <div class="stat-card red">
+      <h3 th:text="${stats.rejected}">0</h3>
+      <p>Rejected</p>
+      <div class="stat-icon">❌</div>
+    </div>
+  </div>
+
+  <!-- Filter Buttons -->
+  <div style="display:flex; gap:8px; margin-bottom:1.5rem; flex-wrap:wrap;">
+    <button class="btn btn-primary btn-sm"
+            onclick="filterApps('ALL', this)">
+      All Applicants
+    </button>
+    <button class="btn btn-outline btn-sm"
+            onclick="filterApps('PENDING', this)">
+      ⏳ Pending
+    </button>
+    <button class="btn btn-outline btn-sm"
+            onclick="filterApps('SHORTLISTED', this)">
+      ⭐ Shortlisted
+    </button>
+    <button class="btn btn-outline btn-sm"
+            onclick="filterApps('REJECTED', this)">
+      ❌ Rejected
+    </button>
+  </div>
+
+  <!-- Applicants Table -->
+  <div class="table-wrapper">
+    <table id="appTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Applicant</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Skills</th>
+          <th>Applied On</th>
+          <th>Resume</th>
+          <th>Cover Letter</th>
+          <th>Status</th>
+          <th>Update</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="app, appStat : ${applications}"
+            th:data-status="${app.status.name()}">
+          <td style="color:var(--text-muted);"
+              th:text="${appStat.count}">1</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:36px; height:36px; border-radius:50%;
+                          background:linear-gradient(135deg,var(--primary),var(--secondary));
+                          display:flex; align-items:center; justify-content:center;
+                          color:#fff; font-weight:900; font-size:0.85rem;
+                          flex-shrink:0;">
+                <span th:text="${#strings.substring(
+                               app.applicant.fullName,0,1)}">A</span>
+              </div>
+              <div>
+                <div style="font-weight:700; font-size:0.875rem;"
+                     th:text="${app.applicant.fullName}">—</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);"
+                     th:text="${app.applicant.location != null ?
+                               app.applicant.location : 'Location not set'}">
+                  —
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:0.8rem;"
+              th:text="${app.applicant.email}">—</td>
+          <td style="font-size:0.8rem;"
+              th:text="${app.applicant.phone != null ?
+                        app.applicant.phone : '—'}">—</td>
+          <td>
+            <span th:if="${app.applicant.skills != null}"
+                  class="badge badge-primary"
+                  style="font-size:0.68rem;"
+                  th:text="${#strings.length(app.applicant.skills) > 20 ?
+                            #strings.substring(app.applicant.skills,0,20)+'...' :
+                            app.applicant.skills}">Skills</span>
+            <span th:if="${app.applicant.skills == null}"
+                  class="text-muted" style="font-size:0.8rem;">—</span>
+          </td>
+          <td style="font-size:0.8rem;"
+              th:text="${#temporals.format(app.appliedAt,'dd MMM yyyy')}">—</td>
+
+          <!-- Resume Download -->
+          <td>
+            <a th:if="${app.applicant.resumePath != null}"
+               th:href="@{/employer/download-resume/{fileName}(fileName=${app.applicant.resumePath})}"
+               class="btn btn-accent btn-sm"
+               style="white-space:nowrap;">
+              📥 Download
+            </a>
+            <span th:if="${app.applicant.resumePath == null}"
+                  class="badge badge-warning"
+                  style="font-size:0.7rem;">
+              ⚠️ No Resume
+            </span>
+          </td>
+
+          <!-- Cover Letter -->
+          <td>
+            <button th:if="${app.coverLetter != null
+                            and !app.coverLetter.isEmpty()}"
+                    type="button"
+                    class="btn btn-outline btn-sm"
+                    th:attr="data-name=${app.applicant.fullName},
+                             data-letter=${app.coverLetter}"
+                    onclick="showCoverLetter(
+                               this.dataset.name,
+                               this.dataset.letter)">
+              📄 View
+            </button>
+            <span th:if="${app.coverLetter == null
+                          or app.coverLetter.isEmpty()}"
+                  class="text-muted"
+                  style="font-size:0.75rem;">No letter</span>
+          </td>
+
+          <td>
+            <span class="badge"
+                  th:classappend="'status-' + ${app.status.name()}"
+                  th:text="${app.status}">PENDING</span>
+          </td>
+          <td>
+            <form th:action="@{/employer/application/{id}/status(id=${app.id})}"
+                  method="post">
+              <input type="hidden" name="jobId" th:value="${job.id}">
+              <select name="status"
+                      style="padding:6px 10px;
+                             border:2px solid var(--border);
+                             border-radius:8px; font-size:0.8rem;
+                             cursor:pointer; font-family:inherit;
+                             outline:none; transition:all 0.2s;"
+                      onfocus="this.style.borderColor='var(--primary)'"
+                      onblur="this.style.borderColor='var(--border)'"
+                      onchange="this.form.submit()">
+                <option value="PENDING"
+                        th:selected="${app.status.name() == 'PENDING'}">
+                  Pending
+                </option>
+                <option value="SHORTLISTED"
+                        th:selected="${app.status.name() == 'SHORTLISTED'}">
+                  ⭐ Shortlist
+                </option>
+                <option value="REJECTED"
+                        th:selected="${app.status.name() == 'REJECTED'}">
+                  ❌ Reject
+                </option>
+              </select>
+            </form>
+          </td>
+        </tr>
+
+        <!-- Empty State -->
+        <tr th:if="${#lists.isEmpty(applications)}">
+          <td colspan="10"
+              style="text-align:center; padding:4rem;
+                     color:var(--text-muted);">
+            <div style="font-size:4rem; margin-bottom:1rem;">📭</div>
+            <h3 style="font-weight:700; color:var(--dark);
+                       margin-bottom:0.5rem;">
+              No Applications Yet
+            </h3>
+            <p>No one has applied for this job yet.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="height:2rem;"></div>
+
+</div>
+
+<!-- Scripts -->
+<div th:replace="~{fragments/navbar :: scripts}"></div>
+
+<script>
+function showCoverLetter(name, letter) {
+  document.getElementById('modalApplicantName').textContent = name;
+  document.getElementById('modalCoverLetter').textContent   = letter;
+  const modal = document.getElementById('coverLetterModal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCoverLetter() {
+  document.getElementById('coverLetterModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('coverLetterModal')
+  .addEventListener('click', function(e) {
+    if (e.target === this) closeCoverLetter();
+  });
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeCoverLetter();
+});
+
+function filterApps(status, btn) {
+  document.querySelectorAll('#appTable tbody tr').forEach(row => {
+    if (status === 'ALL') {
+      row.style.display = '';
+    } else {
+      row.style.display =
+        row.dataset.status === status ? '' : 'none';
+    }
+  });
+  document.querySelectorAll('.btn-sm').forEach(b => {
+    b.classList.remove('btn-primary');
+    b.classList.add('btn-outline');
+  });
+  if (btn) {
+    btn.classList.add('btn-primary');
+    btn.classList.remove('btn-outline');
+  }
+}
+</script>
+
+</body>
+</html>

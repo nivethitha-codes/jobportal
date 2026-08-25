@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+
+<!-- Loading Screen -->
+<div th:fragment="loading">
+  <div id="loadingScreen">
+    <div class="loader-logo">Job<span>Spark</span></div>
+    <div class="loader-bar">
+      <div class="loader-bar-fill"></div>
+    </div>
+    <p class="loader-text">Loading...</p>
+  </div>
+</div>
+
+<!-- Navbar -->
+<nav th:fragment="navbar" class="navbar">
+  <a th:href="@{/}" class="navbar-brand">
+    <div class="logo-icon">⚡</div>
+    Job<span>Spark</span>
+  </a>
+
+  <div class="nav-links">
+    <a th:href="@{/}">Home</a>
+    <a th:href="@{/jobs/browse}">Browse Jobs</a>
+
+    <div class="nav-divider"></div>
+
+    <span sec:authorize="hasRole('STUDENT')">
+      <a th:href="@{/student/dashboard}">Dashboard</a>
+      <a th:href="@{/student/applications}">My Applications</a>
+      <a th:href="@{/student/saved-jobs}">🔖 Saved Jobs</a>
+      <a th:href="@{/student/profile}">My Profile</a>
+      <a th:href="@{/student/change-password}">🔒 Password</a>
+    </span>
+
+    <span sec:authorize="hasRole('EMPLOYER')">
+      <a th:href="@{/employer/dashboard}">Dashboard</a>
+      <a th:href="@{/employer/profile}">Profile</a>
+      <a th:href="@{/employer/change-password}">🔒 Password</a>
+      <a th:href="@{/employer/post-job}"
+         class="btn btn-primary btn-sm">+ Post Job</a>
+    </span>
+
+    <span sec:authorize="hasRole('ADMIN')">
+      <a th:href="@{/admin/dashboard}">Admin Panel</a>
+    </span>
+
+    <div class="nav-divider"></div>
+
+    <span sec:authorize="isAnonymous()">
+      <a th:href="@{/login}"
+         class="btn btn-outline btn-sm">Login</a>
+      <a th:href="@{/register}"
+         class="btn btn-primary btn-sm">Register Free</a>
+    </span>
+
+    <span sec:authorize="isAuthenticated()">
+      <form th:action="@{/logout}" method="post" style="margin:0;">
+        <button type="submit"
+                class="btn btn-outline btn-sm">Logout</button>
+      </form>
+    </span>
+  </div>
+</nav>
+
+<!-- Scripts Fragment -->
+<div th:fragment="scripts">
+  <script th:src="@{/js/main.js}"></script>
+
+  <!-- ── JobSpark Chatbot ──────────────────────────────────── -->
+
+  <!-- Chatbot Button -->
+  <div id="chatbotBtn"
+       onclick="toggleChatbot()"
+       style="position:fixed; bottom:90px; right:24px;
+              width:56px; height:56px; border-radius:50%;
+              background:linear-gradient(135deg,#7C3AED,#EC4899);
+              display:flex; align-items:center; justify-content:center;
+              cursor:pointer; z-index:9998;
+              box-shadow:0 8px 25px rgba(124,58,237,0.4);
+              transition:all 0.3s ease;
+              font-size:1.5rem;">
+    💬
+  </div>
+
+  <!-- Chatbot Window -->
+  <div id="chatbotWindow"
+       style="display:none; position:fixed; bottom:160px; right:24px;
+              width:360px; height:500px; background:#fff;
+              border-radius:20px; z-index:9998;
+              box-shadow:0 20px 60px rgba(0,0,0,0.2);
+              flex-direction:column; overflow:hidden;
+              border:2px solid rgba(124,58,237,0.15);
+              animation:scaleIn 0.3s ease;">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0A0A1A,#1A1A3E);
+                padding:1rem 1.25rem;
+                display:flex; align-items:center;
+                justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:36px; height:36px; border-radius:50%;
+                    background:linear-gradient(135deg,#7C3AED,#EC4899);
+                    display:flex; align-items:center;
+                    justify-content:center; font-size:1rem;">
+          🤖
+        </div>
+        <div>
+          <p style="color:#fff; font-weight:700;
+                    font-size:0.875rem; margin:0;">
+            JobSpark Assistant
+          </p>
+          <p style="color:rgba(255,255,255,0.5);
+                    font-size:0.72rem; margin:0;">
+            Always here to help!
+          </p>
+        </div>
+      </div>
+      <button onclick="toggleChatbot()"
+              style="background:rgba(255,255,255,0.1);
+                     border:none; color:#fff;
+                     width:28px; height:28px; border-radius:50%;
+                     cursor:pointer; font-size:0.9rem;
+                     display:flex; align-items:center;
+                     justify-content:center;">
+        ✕
+      </button>
+    </div>
+
+    <!-- Messages -->
+    <div id="chatMessages"
+         style="flex:1; overflow-y:auto; padding:1rem;
+                display:flex; flex-direction:column; gap:10px;
+                background:#F9F7FF;">
+
+      <!-- Welcome Message -->
+      <div style="display:flex; gap:8px; align-items:flex-start;">
+        <div style="width:28px; height:28px; border-radius:50%;
+                    background:linear-gradient(135deg,#7C3AED,#EC4899);
+                    display:flex; align-items:center;
+                    justify-content:center; font-size:0.75rem;
+                    flex-shrink:0; color:#fff;">
+          🤖
+        </div>
+        <div style="background:#fff; padding:10px 14px;
+                    border-radius:0 12px 12px 12px; max-width:80%;
+                    font-size:0.82rem; line-height:1.6;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.06);
+                    color:#1A1A2E;">
+          Hi! 👋 I'm your <strong>JobSpark Assistant!</strong><br><br>
+          I can help you with:<br>
+          🔍 Finding jobs<br>
+          📝 Resume tips<br>
+          💼 Interview advice<br>
+          🎯 Career guidance<br><br>
+          What can I help you with today?
+        </div>
+      </div>
+
+      <!-- Quick Replies -->
+      <div id="quickReplies"
+           style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+        <button onclick="sendQuick('How to find jobs?')"
+                class="quick-btn">🔍 Find Jobs</button>
+        <button onclick="sendQuick('Resume tips')"
+                class="quick-btn">📄 Resume Tips</button>
+        <button onclick="sendQuick('Interview tips')"
+                class="quick-btn">💼 Interview</button>
+        <button onclick="sendQuick('How to apply?')"
+                class="quick-btn">✅ How to Apply</button>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div style="padding:0.75rem; border-top:2px solid #F0EEFF;
+                background:#fff; display:flex; gap:8px;">
+      <input type="text" id="chatInput"
+             placeholder="Type your message..."
+             style="flex:1; padding:8px 14px;
+                    border:2px solid #F0EEFF;
+                    border-radius:20px; font-size:0.82rem;
+                    outline:none; font-family:inherit;
+                    transition:border 0.2s;"
+             onfocus="this.style.borderColor='#7C3AED'"
+             onblur="this.style.borderColor='#F0EEFF'"
+             onkeydown="if(event.key==='Enter') sendMessage()">
+      <button onclick="sendMessage()"
+              style="width:36px; height:36px; border-radius:50%;
+                     background:linear-gradient(135deg,#7C3AED,#EC4899);
+                     border:none; cursor:pointer; color:#fff;
+                     font-size:1rem; display:flex; align-items:center;
+                     justify-content:center; flex-shrink:0;
+                     transition:transform 0.2s;"
+              onmouseover="this.style.transform='scale(1.1)'"
+              onmouseout="this.style.transform='scale(1)'">
+        ➤
+      </button>
+    </div>
+  </div>
+
+  <style>
+    .quick-btn {
+      background: #F0EEFF;
+      border: 2px solid rgba(124,58,237,0.2);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: inherit;
+      color: #7C3AED;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .quick-btn:hover {
+      background: #7C3AED;
+      color: #fff;
+    }
+  </style>
+
+  <script>
+  const responses = {
+    greet: {
+      keys: ['hi','hello','hey','good morning','good evening','hii','helo'],
+      reply: "Hello! 👋 Welcome to JobSpark! I'm here to help you with your job search journey. What would you like to know?"
+    },
+    findJob: {
+      keys: ['find job','search job','browse job','look for job','how to find'],
+      reply: "🔍 <strong>Finding Jobs on JobSpark:</strong><br><br>1. Click <strong>Browse Jobs</strong> in the navbar<br>2. Use filters — keyword, category, location<br>3. Click <strong>View & Apply</strong> on any job<br>4. Write a great cover letter and submit!<br><br>Tip: Use the search autocomplete to find jobs faster! 💡"
+    },
+    apply: {
+      keys: ['how to apply','apply job','submit application','application'],
+      reply: "✅ <strong>How to Apply:</strong><br><br>1. Create a student account<br>2. Complete your profile<br>3. Upload your resume (PDF)<br>4. Browse and find a job you like<br>5. Click <strong>Apply Now</strong><br>6. Write a compelling cover letter<br>7. Submit and track in <strong>My Applications</strong>!"
+    },
+    resume: {
+      keys: ['resume','cv','curriculum','upload resume','resume tips'],
+      reply: "📄 <strong>Resume Tips:</strong><br><br>✅ Keep it to 1-2 pages<br>✅ Add your skills clearly<br>✅ Include projects and achievements<br>✅ Use action verbs<br>✅ Tailor it to each job<br><br>📤 Upload your resume in <strong>Student Dashboard</strong> to let employers download it directly!"
+    },
+    interview: {
+      keys: ['interview','interview tips','prepare interview','how to interview'],
+      reply: "💼 <strong>Interview Tips:</strong><br><br>✅ Research the company well<br>✅ Practice common questions<br>✅ Dress professionally<br>✅ Be on time (or early!)<br>✅ Prepare questions to ask<br>✅ Follow up with a thank you email<br><br>Common Q: <em>Tell me about yourself, Why this role?, Your strengths?</em>"
+    },
+    coverLetter: {
+      keys: ['cover letter','covering letter','letter tips'],
+      reply: "✉️ <strong>Cover Letter Tips:</strong><br><br>✅ Start with a strong opening<br>✅ Mention the specific role<br>✅ Highlight your relevant skills<br>✅ Show enthusiasm for the company<br>✅ Keep it under 300 words<br>✅ End with a call to action<br><br>Example: <em>'I am excited to apply for the Java Developer role at XYZ...'</em>"
+    },
+    profile: {
+      keys: ['profile','update profile','edit profile','my profile'],
+      reply: "👤 <strong>Setting Up Your Profile:</strong><br><br>1. Go to <strong>My Profile</strong> in navbar<br>2. Add your full name and phone<br>3. Add your location<br>4. Add your skills (comma separated)<br>5. Upload your resume<br><br>A complete profile gets <strong>3x more views</strong> from employers! 🚀"
+    },
+    status: {
+      keys: ['application status','track application','status','shortlisted','rejected','pending'],
+      reply: "📋 <strong>Application Status Guide:</strong><br><br>⏳ <strong>Pending</strong> — Employer hasn't reviewed yet<br>⭐ <strong>Shortlisted</strong> — Great news! Employer liked you<br>❌ <strong>Rejected</strong> — Keep trying, don't give up!<br><br>You'll receive an <strong>email notification</strong> when your status changes! 📧"
+    },
+    employer: {
+      keys: ['employer','post job','hire','company','recruit'],
+      reply: "🏢 <strong>For Employers:</strong><br><br>1. Register as an Employer<br>2. Complete your company profile<br>3. Click <strong>Post New Job</strong><br>4. Fill in job details and deadline<br>5. Review applicants in dashboard<br>6. Shortlist or reject candidates<br><br>Students get email notifications when you update their status! 📧"
+    },
+    saved: {
+      keys: ['save job','bookmark','saved jobs','wishlist'],
+      reply: "🔖 <strong>Save Jobs for Later:</strong><br><br>1. Open any job detail page<br>2. Click <strong>Save this Job</strong> button<br>3. View all saved jobs at <strong>Saved Jobs</strong> in navbar<br>4. Click <strong>Apply Now</strong> when ready!<br><br>Never lose track of a great opportunity! 💡"
+    },
+    password: {
+      keys: ['password','change password','forgot password','reset password'],
+      reply: "🔒 <strong>Change Your Password:</strong><br><br>1. Click <strong>🔒 Password</strong> in the navbar<br>2. Enter your current password<br>3. Enter new password (min 6 chars)<br>4. Confirm new password<br>5. Click <strong>Update Password</strong>!<br><br>Use a strong password with letters, numbers & symbols! 💪"
+    },
+    withdraw: {
+      keys: ['withdraw','cancel application','remove application'],
+      reply: "🗑️ <strong>Withdraw Application:</strong><br><br>You can withdraw a <strong>PENDING</strong> application before the employer reviews it!<br><br>1. Go to <strong>My Applications</strong><br>2. Find the pending application<br>3. Click <strong>🗑️ Withdraw</strong><br>4. Confirm in the popup<br><br>Note: You cannot withdraw once shortlisted or rejected!"
+    },
+    thanks: {
+      keys: ['thank','thanks','thank you','thankyou','great','awesome','helpful'],
+      reply: "You're welcome! 😊 I'm always here to help you on your job search journey. Best of luck with your applications! 🚀✨"
+    },
+    bye: {
+      keys: ['bye','goodbye','see you','exit','close'],
+      reply: "Goodbye! 👋 Best of luck with your job search! Remember — the right opportunity is just around the corner! 🌟"
+    }
+  };
+
+  const fallback = "I'm not sure about that! 🤔 Try asking me about:<br><br>🔍 Finding jobs<br>📄 Resume tips<br>💼 Interview advice<br>✅ How to apply<br>🔖 Saving jobs<br>📋 Application status";
+
+  function getResponse(msg) {
+    const lower = msg.toLowerCase();
+    for (const key in responses) {
+      const r = responses[key];
+      if (r.keys.some(k => lower.includes(k))) {
+        return r.reply;
+      }
+    }
+    return fallback;
+  }
+
+  function toggleChatbot() {
+    const win = document.getElementById('chatbotWindow');
+    const btn = document.getElementById('chatbotBtn');
+    if (win.style.display === 'none' || win.style.display === '') {
+      win.style.display = 'flex';
+      btn.innerHTML = '✕';
+      document.getElementById('chatInput').focus();
+    } else {
+      win.style.display = 'none';
+      btn.innerHTML = '💬';
+    }
+  }
+
+  function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const msg   = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+    addMessage(msg, 'user');
+    const qr = document.getElementById('quickReplies');
+    if (qr) qr.style.display = 'none';
+    setTimeout(() => {
+      addMessage(getResponse(msg), 'bot');
+    }, 600);
+  }
+
+  function sendQuick(msg) {
+    addMessage(msg, 'user');
+    const qr = document.getElementById('quickReplies');
+    if (qr) qr.style.display = 'none';
+    setTimeout(() => {
+      addMessage(getResponse(msg), 'bot');
+    }, 600);
+  }
+
+  function addMessage(text, sender) {
+    const messages = document.getElementById('chatMessages');
+    const div      = document.createElement('div');
+    div.style.cssText = `
+      display: flex; gap: 8px; align-items: flex-start;
+      ${sender === 'user' ? 'flex-direction: row-reverse;' : ''}
+    `;
+
+    const avatar = document.createElement('div');
+    avatar.style.cssText = `
+      width: 28px; height: 28px; border-radius: 50%;
+      background: ${sender === 'user' ?
+        'linear-gradient(135deg,#10B981,#059669)' :
+        'linear-gradient(135deg,#7C3AED,#EC4899)'};
+      display: flex; align-items: center;
+      justify-content: center; font-size: 0.75rem;
+      flex-shrink: 0; color: #fff;
+    `;
+    avatar.textContent = sender === 'user' ? '😊' : '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.style.cssText = `
+      padding: 10px 14px;
+      border-radius: ${sender === 'user' ?
+        '12px 0 12px 12px' : '0 12px 12px 12px'};
+      max-width: 80%; font-size: 0.82rem; line-height: 1.6;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      background: ${sender === 'user' ?
+        'linear-gradient(135deg,#7C3AED,#6D28D9)' : '#fff'};
+      color: ${sender === 'user' ? '#fff' : '#1A1A2E'};
+    `;
+    bubble.innerHTML = text;
+
+    div.appendChild(avatar);
+    div.appendChild(bubble);
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+  </script>
+</div>
+
+</body>
+</html>

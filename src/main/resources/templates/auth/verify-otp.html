@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Verify OTP — JobSpark</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <style>
+    .otp-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg,
+        #1E1030 0%, #2D1B69 50%, #3B2282 100%);
+      padding: 2rem;
+    }
+    .otp-card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 3rem;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    .otp-inputs {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 2rem 0;
+    }
+    .otp-input {
+      width: 52px !important;
+      height: 56px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 900;
+      border: 2px solid #DDD6FE !important;
+      border-radius: 12px !important;
+      padding: 0 !important;
+      color: #1E1030;
+      transition: all 0.2s ease;
+      caret-color: #D97706;
+    }
+    .otp-input:focus {
+      border-color: #D97706 !important;
+      box-shadow: 0 0 0 4px rgba(217,119,6,0.15) !important;
+      transform: scale(1.05);
+    }
+    .otp-input.filled {
+      border-color: #2D1B69 !important;
+      background: #F5F3FF;
+      color: #2D1B69;
+    }
+    #timer {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #D97706;
+    }
+    #timer.expired { color: #EF4444; }
+  </style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div th:replace="~{fragments/navbar :: loading}"></div>
+
+<div class="otp-page">
+  <div class="otp-card">
+
+    <!-- Icon -->
+    <div style="width:80px; height:80px; border-radius:50%;
+                background:linear-gradient(135deg,#2D1B69,#D97706);
+                display:flex; align-items:center; justify-content:center;
+                font-size:2.2rem; margin:0 auto 1.5rem;
+                box-shadow:0 8px 25px rgba(217,119,6,0.3);">
+      📧
+    </div>
+
+    <!-- Steps -->
+    <div style="display:flex; align-items:center;
+                gap:8px; margin-bottom:1.5rem; justify-content:center;">
+      <div style="width:28px; height:28px; border-radius:50%;
+                  background:#10B981; color:#fff;
+                  display:flex; align-items:center;
+                  justify-content:center; font-size:0.75rem;
+                  font-weight:700;">✓</div>
+      <div style="font-size:0.78rem; color:#10B981; font-weight:600;">
+        Details
+      </div>
+      <div style="flex:1; height:2px; background:#DDD6FE;
+                  border-radius:2px; max-width:40px;"></div>
+      <div style="width:28px; height:28px; border-radius:50%;
+                  background:#2D1B69; color:#fff;
+                  display:flex; align-items:center;
+                  justify-content:center; font-size:0.75rem;
+                  font-weight:700;">2</div>
+      <div style="font-size:0.78rem; color:#2D1B69; font-weight:600;">
+        Verify OTP
+      </div>
+      <div style="flex:1; height:2px; background:#DDD6FE;
+                  border-radius:2px; max-width:40px;"></div>
+      <div style="width:28px; height:28px; border-radius:50%;
+                  background:#EDE9FE; color:#9CA3AF;
+                  display:flex; align-items:center;
+                  justify-content:center; font-size:0.75rem;
+                  font-weight:700;">3</div>
+      <div style="font-size:0.78rem; color:#9CA3AF; font-weight:600;">
+        Done!
+      </div>
+    </div>
+
+    <h2 style="font-size:1.5rem; font-weight:900;
+               color:#1E1030; margin-bottom:8px;">
+      Check Your Email! 📬
+    </h2>
+    <p style="color:#6B7280; font-size:0.875rem;
+               line-height:1.6; margin-bottom:8px;">
+      We sent a 6-digit OTP to
+    </p>
+    <p style="color:#2D1B69; font-weight:700;
+               font-size:0.9rem; margin-bottom:0.5rem;"
+       th:text="${email}">email@example.com</p>
+
+    <!-- Timer -->
+    <div style="margin-bottom:1rem;">
+      <p style="font-size:0.8rem; color:#9CA3AF;">
+        Code expires in
+        <span id="timer">05:00</span>
+      </p>
+    </div>
+
+    <!-- Alerts -->
+    <div th:if="${otpError}"
+         class="alert alert-danger"
+         style="text-align:left;"
+         th:text="${otpError}"></div>
+    <div th:if="${resent}"
+         class="alert alert-success"
+         style="text-align:left;">
+      ✅ New OTP sent successfully!
+    </div>
+
+    <!-- OTP Form -->
+    <form th:action="@{/register/verify-otp}"
+          method="post" id="otpForm">
+
+      <!-- Hidden fields -->
+      <input type="hidden" name="email"
+             th:value="${email}">
+      <input type="hidden" name="fullName"
+             th:value="${fullName}">
+      <input type="hidden" name="password"
+             th:value="${password}">
+      <input type="hidden" name="role"
+             th:value="${role}">
+      <input type="hidden" name="companyName"
+             th:value="${companyName}">
+      <input type="hidden" name="otp"
+             id="otpHidden">
+
+      <!-- OTP Input Boxes -->
+      <div class="otp-inputs">
+        <input type="text" class="otp-input"
+               maxlength="1" id="otp1"
+               oninput="moveNext(this, null, 'otp2')"
+               onkeydown="movePrev(event, null, 'otp2')">
+        <input type="text" class="otp-input"
+               maxlength="1" id="otp2"
+               oninput="moveNext(this, 'otp1', 'otp3')"
+               onkeydown="movePrev(event, 'otp1', 'otp3')">
+        <input type="text" class="otp-input"
+               maxlength="1" id="otp3"
+               oninput="moveNext(this, 'otp2', 'otp4')"
+               onkeydown="movePrev(event, 'otp2', 'otp4')">
+        <input type="text" class="otp-input"
+               maxlength="1" id="otp4"
+               oninput="moveNext(this, 'otp3', 'otp5')"
+               onkeydown="movePrev(event, 'otp3', 'otp5')">
+        <input type="text" class="otp-input"
+               maxlength="1" id="otp5"
+               oninput="moveNext(this, 'otp4', 'otp6')"
+               onkeydown="movePrev(event, 'otp4', 'otp6')">
+        <input type="text" class="otp-input"
+               maxlength="1" id="otp6"
+               oninput="moveNext(this, 'otp5', null)"
+               onkeydown="movePrev(event, 'otp5', null)">
+      </div>
+
+      <button type="submit" class="btn btn-primary"
+              style="width:100%; padding:0.85rem;
+                     justify-content:center; font-size:1rem;"
+              onclick="return combineOtp()">
+        ✅ Verify & Create Account
+      </button>
+
+    </form>
+
+    <!-- Resend OTP -->
+    <form th:action="@{/register/resend-otp}"
+          method="post" style="margin-top:1rem;">
+      <input type="hidden" name="email"
+             th:value="${email}">
+      <input type="hidden" name="fullName"
+             th:value="${fullName}">
+      <input type="hidden" name="password"
+             th:value="${password}">
+      <input type="hidden" name="role"
+             th:value="${role}">
+      <input type="hidden" name="companyName"
+             th:value="${companyName}">
+      <button type="submit"
+              class="btn btn-outline"
+              style="width:100%; justify-content:center;"
+              id="resendBtn">
+        🔄 Resend OTP
+      </button>
+    </form>
+
+    <!-- Back Link -->
+    <a th:href="@{/register}"
+       style="display:block; margin-top:1rem;
+              color:#9CA3AF; font-size:0.8rem;
+              text-decoration:none; transition:color 0.2s;"
+       onmouseover="this.style.color='#2D1B69'"
+       onmouseout="this.style.color='#9CA3AF'">
+      ← Back to Register
+    </a>
+
+  </div>
+</div>
+
+<!-- Scripts -->
+<div th:replace="~{fragments/navbar :: scripts}"></div>
+
+<script>
+// ── OTP Input Navigation ─────────────────────────────────────
+function moveNext(current, prevId, nextId) {
+  const val = current.value;
+  if (val.match(/[0-9]/)) {
+    current.classList.add('filled');
+    if (nextId) {
+      document.getElementById(nextId).focus();
+    }
+  } else {
+    current.value = '';
+    current.classList.remove('filled');
+  }
+}
+
+function movePrev(event, prevId, nextId) {
+  if (event.key === 'Backspace' && !event.target.value && prevId) {
+    const prev = document.getElementById(prevId);
+    prev.value = '';
+    prev.classList.remove('filled');
+    prev.focus();
+  }
+}
+
+// ── Combine OTP ──────────────────────────────────────────────
+function combineOtp() {
+  const otp =
+    document.getElementById('otp1').value +
+    document.getElementById('otp2').value +
+    document.getElementById('otp3').value +
+    document.getElementById('otp4').value +
+    document.getElementById('otp5').value +
+    document.getElementById('otp6').value;
+
+  if (otp.length !== 6) {
+    alert('Please enter all 6 digits of the OTP!');
+    return false;
+  }
+
+  document.getElementById('otpHidden').value = otp;
+  return true;
+}
+
+// ── Paste OTP Support ────────────────────────────────────────
+document.getElementById('otp1')
+  .addEventListener('paste', function(e) {
+    e.preventDefault();
+    const pasted = e.clipboardData
+      .getData('text').replace(/\D/g, '').slice(0, 6);
+    const inputs = ['otp1','otp2','otp3','otp4','otp5','otp6'];
+    pasted.split('').forEach((char, i) => {
+      if (inputs[i]) {
+        const input = document.getElementById(inputs[i]);
+        input.value = char;
+        input.classList.add('filled');
+      }
+    });
+    // Focus last filled
+    const lastIdx = Math.min(pasted.length, 5);
+    document.getElementById(inputs[lastIdx])?.focus();
+  });
+
+// ── Countdown Timer ──────────────────────────────────────────
+let timeLeft = 300; // 5 minutes
+const timerEl = document.getElementById('timer');
+
+const countdown = setInterval(() => {
+  timeLeft--;
+  const mins = String(Math.floor(timeLeft / 60)).padStart(2,'0');
+  const secs = String(timeLeft % 60).padStart(2,'0');
+  timerEl.textContent = `${mins}:${secs}`;
+
+  if (timeLeft <= 60) {
+    timerEl.style.color = '#EF4444';
+  }
+  if (timeLeft <= 0) {
+    clearInterval(countdown);
+    timerEl.textContent = 'Expired!';
+    timerEl.classList.add('expired');
+  }
+}, 1000);
+
+// Auto focus first input
+document.getElementById('otp1')?.focus();
+</script>
+
+</body>
+</html>

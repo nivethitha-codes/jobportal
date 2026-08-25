@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="${job.title} + ' — JobSpark'">Job Detail</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div th:replace="~{fragments/navbar :: loading}"></div>
+
+<!-- Navbar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container mt-2">
+
+  <!-- Back Button -->
+  <a th:href="@{/jobs/browse}"
+     style="color:var(--text-muted); font-size:0.875rem;
+            text-decoration:none; display:inline-flex;
+            align-items:center; gap:6px; margin-bottom:1.5rem;
+            transition:color 0.2s;"
+     onmouseover="this.style.color='var(--primary)'"
+     onmouseout="this.style.color='var(--text-muted)'">
+    ← Back to Jobs
+  </a>
+
+  <div class="grid-2" style="gap:2rem; align-items:start;">
+
+    <!-- LEFT: Job Details -->
+    <div>
+      <div class="card mb-1">
+
+        <!-- Company Logo + Title -->
+        <div style="display:flex; align-items:center;
+                    gap:1rem; margin-bottom:1.5rem;">
+          <div style="width:60px; height:60px; border-radius:16px;
+                      flex-shrink:0;
+                      background:linear-gradient(135deg,var(--primary),var(--secondary));
+                      display:flex; align-items:center; justify-content:center;
+                      color:#fff; font-weight:900; font-size:1.5rem;
+                      box-shadow:0 8px 20px rgba(124,58,237,0.3);">
+            <span th:text="${#strings.substring(job.employer.companyName,0,1)}">A</span>
+          </div>
+          <div>
+            <div style="display:flex; gap:8px; margin-bottom:6px;">
+              <span class="badge badge-primary"
+                    th:text="${job.category}">IT</span>
+              <span class="badge badge-pink"
+                    th:text="${job.jobType}">Full-time</span>
+              <!-- Expiry Badge in Title -->
+              <span th:if="${job.expiryDate != null}"
+                    class="badge"
+                    th:classappend="${job.expired} ?
+                                   'badge-danger' : 'badge-success'"
+                    th:text="${job.expired} ? '❌ Expired' :
+                             '✅ Open till ' +
+                             ${#temporals.format(job.expiryDate,'dd MMM')}">
+              </span>
+            </div>
+            <h1 th:text="${job.title}"
+                style="font-size:1.5rem; font-weight:900;
+                       letter-spacing:-0.5px; margin-bottom:4px;">
+              Job Title
+            </h1>
+            <div style="color:var(--primary); font-weight:700;"
+                 th:text="${job.employer.companyName}">Company</div>
+          </div>
+        </div>
+
+        <!-- Meta Info -->
+        <div style="display:flex; gap:10px; flex-wrap:wrap;
+                    margin-bottom:1.5rem;">
+          <span style="display:flex; align-items:center; gap:6px;
+                       background:var(--body-bg); padding:8px 14px;
+                       border-radius:20px; font-size:0.82rem; font-weight:500;">
+            📍 <span th:text="${job.location}">Location</span>
+          </span>
+          <span style="display:flex; align-items:center; gap:6px;
+                       background:var(--body-bg); padding:8px 14px;
+                       border-radius:20px; font-size:0.82rem; font-weight:500;">
+            💼 <span th:text="${job.experience}">Experience</span>
+          </span>
+          <span style="display:flex; align-items:center; gap:6px;
+                       background:var(--body-bg); padding:8px 14px;
+                       border-radius:20px; font-size:0.82rem; font-weight:500;">
+            💰 <span th:text="${job.salary}">Salary</span>
+          </span>
+          <span style="display:flex; align-items:center; gap:6px;
+                       background:var(--body-bg); padding:8px 14px;
+                       border-radius:20px; font-size:0.82rem; font-weight:500;">
+            📅 Posted:
+            <span th:text="${#temporals.format(job.postedAt,'dd MMM yyyy')}">
+              Date
+            </span>
+          </span>
+          <!-- Expiry Date Badge -->
+          <span th:if="${job.expiryDate != null}"
+                style="display:flex; align-items:center; gap:6px;
+                       padding:8px 14px; border-radius:20px;
+                       font-size:0.82rem; font-weight:600;"
+                th:style="${job.expired} ?
+                          'background:#FEE2E2; color:#991B1B;' :
+                          'background:#D1FAE5; color:#065F46;'"
+                th:text="${job.expired} ?
+                         '❌ Expired on ' +
+                         ${#temporals.format(job.expiryDate,'dd MMM yyyy')} :
+                         '✅ Open till ' +
+                         ${#temporals.format(job.expiryDate,'dd MMM yyyy')}">
+          </span>
+        </div>
+
+        <!-- Expired Warning Banner -->
+        <div th:if="${job.expired}"
+             style="background:#FEE2E2; border:2px solid #FCA5A5;
+                    border-radius:12px; padding:1rem 1.5rem;
+                    margin-bottom:1.5rem; display:flex;
+                    align-items:center; gap:10px;">
+          <span style="font-size:1.5rem;">⚠️</span>
+          <div>
+            <p style="font-weight:700; color:#991B1B; margin-bottom:2px;">
+              This job posting has expired!
+            </p>
+            <p style="font-size:0.8rem; color:#B91C1C;">
+              Applications are no longer accepted for this position.
+            </p>
+          </div>
+        </div>
+
+        <hr style="border:none; border-top:2px solid var(--border);
+                   margin-bottom:1.5rem;">
+
+        <!-- Description -->
+        <h3 style="font-weight:800; margin-bottom:0.75rem; font-size:1rem;">
+          📋 Job Description
+        </h3>
+        <p th:text="${job.description}"
+           style="color:var(--text-muted); line-height:1.9;
+                  font-size:0.9rem; margin-bottom:1.5rem;">
+          Description
+        </p>
+
+        <!-- Skills -->
+        <h3 style="font-weight:800; margin-bottom:0.75rem; font-size:1rem;">
+          💡 Skills Required
+        </h3>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <span th:each="skill : ${#strings.arraySplit(
+                         job.skillsRequired != null ?
+                         job.skillsRequired : '',',')}"
+                class="badge badge-primary"
+                style="font-size:0.8rem; padding:6px 14px;"
+                th:text="${#strings.trim(skill)}">Skill</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: Apply Card -->
+    <div>
+
+      <!-- Not Logged In -->
+      <div sec:authorize="isAnonymous()" class="card mb-1">
+        <div style="text-align:center; padding:1rem;">
+          <div style="font-size:3.5rem; margin-bottom:1rem;">🔒</div>
+          <h3 style="font-weight:800; margin-bottom:0.5rem;">
+            Login to Apply
+          </h3>
+          <p class="text-muted" style="margin-bottom:1.5rem;">
+            Create a free account or login to apply for this position.
+          </p>
+          <a th:href="@{/login}" class="btn btn-primary"
+             style="width:100%; justify-content:center; padding:0.85rem;">
+            Login Now →
+          </a>
+          <a th:href="@{/register}" class="btn btn-outline mt-1"
+             style="width:100%; justify-content:center; padding:0.85rem;">
+            Create Free Account
+          </a>
+        </div>
+      </div>
+
+      <!-- Job Expired — Student -->
+      <div sec:authorize="hasRole('STUDENT')"
+           th:if="${job.expired}" class="card mb-1">
+        <div style="text-align:center; padding:1.5rem;">
+          <div style="font-size:3.5rem; margin-bottom:1rem;">⏰</div>
+          <h3 style="font-weight:800; margin-bottom:0.5rem; color:#991B1B;">
+            Applications Closed!
+          </h3>
+          <p class="text-muted" style="margin-bottom:1.5rem;">
+            This job expired on
+            <strong th:text="${#temporals.format(job.expiryDate,'dd MMM yyyy')}">
+            </strong>.
+            Look for other opportunities!
+          </p>
+          <a th:href="@{/jobs/browse}" class="btn btn-primary"
+             style="width:100%; justify-content:center;">
+            Browse Other Jobs →
+          </a>
+        </div>
+      </div>
+
+      <!-- Already Applied -->
+      <div sec:authorize="hasRole('STUDENT')"
+           th:if="${alreadyApplied and !job.expired}" class="card mb-1">
+        <div style="text-align:center; padding:1.5rem;">
+          <div style="font-size:3.5rem; margin-bottom:1rem;">✅</div>
+          <h3 style="font-weight:800; margin-bottom:0.5rem;
+                     color:var(--accent);">
+            Already Applied!
+          </h3>
+          <p class="text-muted" style="margin-bottom:1.5rem;">
+            You have already submitted your application for this job.
+          </p>
+          <a th:href="@{/student/applications}"
+             class="btn btn-outline"
+             style="width:100%; justify-content:center;">
+            Track My Applications →
+          </a>
+        </div>
+      </div>
+
+      <!-- Apply Form -->
+      <div sec:authorize="hasRole('STUDENT')"
+           th:if="${!alreadyApplied and !job.expired}" class="card mb-1">
+           <!-- Save Job Button -->
+<form th:action="@{/student/save-job/{id}(id=${job.id})}"
+      method="post" style="margin-bottom:1rem;">
+  <button type="submit"
+          class="btn btn-sm"
+          style="width:100%; justify-content:center;
+                 background:var(--body-bg);
+                 border:2px solid var(--border);"
+          th:text="${isSaved} ? '🔖 Saved — Click to Unsave' :
+                   '🔖 Save this Job'">
+  </button>
+</form>
+        <h3 style="font-weight:800; margin-bottom:0.25rem;">
+          Apply for this Job 🚀
+        </h3>
+        <p class="text-muted" style="margin-bottom:1.5rem;
+                                     font-size:0.875rem;">
+          Write a compelling cover letter to stand out
+        </p>
+        <form th:action="@{/student/apply/{id}(id=${job.id})}"
+              method="post">
+          <div class="form-group">
+            <label>Cover Letter</label>
+            <textarea name="coverLetter" rows="7"
+                      placeholder="Dear Hiring Manager,&#10;&#10;I am excited to apply for this position because..."
+                      style="resize:vertical;" required></textarea>
+            <small class="text-muted">
+              Tip: Mention your relevant experience and why you are a good fit
+            </small>
+          </div>
+          <button type="submit" class="btn btn-primary"
+                  style="width:100%; padding:0.85rem;
+                         justify-content:center; font-size:1rem;">
+            Submit Application 🚀
+          </button>
+        </form>
+      </div>
+
+      <!-- Employer View -->
+      <div sec:authorize="hasRole('EMPLOYER')" class="card mb-1">
+        <div style="text-align:center; padding:1.5rem;">
+          <div style="font-size:3.5rem; margin-bottom:1rem;">👔</div>
+          <h3 style="font-weight:800; margin-bottom:0.5rem;">
+            You are an Employer
+          </h3>
+          <p class="text-muted" style="margin-bottom:1.5rem;">
+            Switch to a student account to apply for jobs.
+          </p>
+          <a th:href="@{/employer/dashboard}"
+             class="btn btn-outline"
+             style="width:100%; justify-content:center;">
+            Go to Dashboard →
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Info Card -->
+      <div class="card">
+        <h3 style="font-weight:800; margin-bottom:1rem; font-size:0.95rem;">
+          🔍 Quick Info
+        </h3>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between;
+                      padding:10px 0; border-bottom:1px solid var(--border);">
+            <span class="text-muted">Job Type</span>
+            <span class="badge badge-pink"
+                  th:text="${job.jobType}">Full-time</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;
+                      padding:10px 0; border-bottom:1px solid var(--border);">
+            <span class="text-muted">Category</span>
+            <span class="badge badge-primary"
+                  th:text="${job.category}">IT</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;
+                      padding:10px 0; border-bottom:1px solid var(--border);">
+            <span class="text-muted">Experience</span>
+            <span style="font-weight:700; font-size:0.875rem;"
+                  th:text="${job.experience}">Fresher</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;
+                      padding:10px 0; border-bottom:1px solid var(--border);">
+            <span class="text-muted">Location</span>
+            <span style="font-weight:700; font-size:0.875rem;"
+                  th:text="${job.location}">Chennai</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;
+                      padding:10px 0; border-bottom:1px solid var(--border);">
+            <span class="text-muted">Salary</span>
+            <span style="font-weight:700; font-size:0.875rem;
+                         color:var(--accent);"
+                  th:text="${job.salary}">₹4-6 LPA</span>
+          </div>
+          <!-- Deadline Row -->
+          <div th:if="${job.expiryDate != null}"
+               style="display:flex; justify-content:space-between;
+                      padding:10px 0;">
+            <span class="text-muted">Deadline</span>
+            <span style="font-weight:700; font-size:0.875rem;"
+                  th:style="${job.expired} ? 'color:#991B1B;' : 'color:#065F46;'"
+                  th:text="${#temporals.format(job.expiryDate,'dd MMM yyyy')}">
+            </span>
+          </div>
+        </div>
+        <a th:href="@{/jobs/browse}"
+           class="btn btn-outline mt-1"
+           style="width:100%; justify-content:center;">
+          Browse Similar Jobs →
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="height:2rem;"></div>
+
+</div>
+
+<!-- Scripts -->
+<div th:replace="~{fragments/navbar :: scripts}"></div>
+
+</body>
+</html>

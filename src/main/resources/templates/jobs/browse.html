@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Browse Jobs — JobSpark</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div th:replace="~{fragments/navbar :: loading}"></div>
+
+<!-- Navbar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<!-- Hero -->
+<div style="background:linear-gradient(135deg, #0A0A1A 0%, #1A1A3E 50%, #2d1b69 100%);
+            padding:4rem 2rem 3rem; text-align:center;
+            position:relative; overflow:hidden;">
+  <div style="position:absolute; top:-50px; left:-50px;
+              width:300px; height:300px;
+              background:radial-gradient(circle, rgba(124,58,237,0.2), transparent 70%);
+              border-radius:50%;"></div>
+  <div style="position:absolute; bottom:-50px; right:-50px;
+              width:250px; height:250px;
+              background:radial-gradient(circle, rgba(236,72,153,0.15), transparent 70%);
+              border-radius:50%;"></div>
+  <div style="position:relative; z-index:1;">
+    <span style="display:inline-block; background:rgba(124,58,237,0.2);
+                 border:1px solid rgba(124,58,237,0.4); color:#C4B5FD;
+                 padding:4px 14px; border-radius:20px; font-size:0.78rem;
+                 font-weight:700; margin-bottom:1rem; letter-spacing:1px;
+                 text-transform:uppercase;">
+      💼 Find Your Next Role
+    </span>
+    <h1 style="font-size:2.8rem; font-weight:900; color:#fff;
+               letter-spacing:-1px; margin-bottom:0.75rem;">
+      Browse <span style="background:linear-gradient(135deg,#A78BFA,#EC4899);
+                          -webkit-background-clip:text;
+                          -webkit-text-fill-color:transparent;
+                          background-clip:text;">All Jobs</span>
+    </h1>
+    <p style="color:rgba(255,255,255,0.6); font-size:1rem;
+              max-width:500px; margin:0 auto;">
+      Discover thousands of opportunities from top employers across India
+    </p>
+  </div>
+</div>
+
+<div class="container mt-2">
+
+  <!-- Search & Filter -->
+  <form class="search-bar" th:action="@{/jobs/browse}" method="get">
+
+    <!-- Keyword with Autocomplete -->
+    <div class="form-group" style="flex:2; position:relative;">
+      <label>🔍 Keyword / Skills</label>
+      <input type="text" name="keyword"
+             id="keywordInput"
+             th:value="${param.keyword}"
+             placeholder="e.g. Java, React, Data Analyst..."
+             autocomplete="off">
+      <!-- Autocomplete Dropdown -->
+      <div id="autocompleteList"
+           style="position:absolute; top:100%; left:0; right:0;
+                  background:#fff; border-radius:12px; z-index:9999;
+                  box-shadow:0 8px 30px rgba(0,0,0,0.15);
+                  border:2px solid var(--border);
+                  max-height:250px; overflow-y:auto;
+                  display:none; margin-top:4px;">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>📂 Category</label>
+      <select name="category">
+        <option value="">All Categories</option>
+        <option value="IT &amp; Software"
+                th:selected="${param.category == 'IT & Software'}">
+          IT &amp; Software</option>
+        <option value="Finance"
+                th:selected="${param.category == 'Finance'}">Finance</option>
+        <option value="Marketing"
+                th:selected="${param.category == 'Marketing'}">Marketing</option>
+        <option value="Design"
+                th:selected="${param.category == 'Design'}">Design</option>
+        <option value="Management"
+                th:selected="${param.category == 'Management'}">Management</option>
+        <option value="Healthcare"
+                th:selected="${param.category == 'Healthcare'}">Healthcare</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>📍 Location</label>
+      <input type="text" name="location"
+             th:value="${param.location}"
+             placeholder="e.g. Chennai, Bangalore">
+    </div>
+    <div class="form-group">
+      <label>💼 Experience</label>
+      <select name="experience">
+        <option value="">Any Level</option>
+        <option value="Fresher"
+                th:selected="${param.experience == 'Fresher'}">Fresher</option>
+        <option value="1-3 years"
+                th:selected="${param.experience == '1-3 years'}">
+          1-3 years</option>
+        <option value="3-5 years"
+                th:selected="${param.experience == '3-5 years'}">
+          3-5 years</option>
+        <option value="5+ years"
+                th:selected="${param.experience == '5+ years'}">
+          5+ years</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:8px; align-self:flex-end;">
+      <button type="submit" class="btn btn-primary">Search</button>
+      <a th:href="@{/jobs/browse}" class="btn btn-outline">Reset</a>
+    </div>
+  </form>
+
+  <!-- Results Bar -->
+  <div class="flex-between mb-1">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <h3 style="font-size:1rem; font-weight:700;">
+        <span th:text="${totalJobs}">0</span> Jobs Found
+      </h3>
+      <span th:if="${param.keyword != null and !param.keyword.isEmpty()}"
+            class="badge badge-primary"
+            th:text="'🔍 ' + ${param.keyword}">keyword</span>
+      <span th:if="${param.category != null and !param.category.isEmpty()}"
+            class="badge badge-info"
+            th:text="'📂 ' + ${param.category}">category</span>
+      <span th:if="${param.location != null and !param.location.isEmpty()}"
+            class="badge badge-success"
+            th:text="'📍 ' + ${param.location}">location</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline btn-sm"
+              onclick="filterByType('ALL')">All</button>
+      <button class="btn btn-outline btn-sm"
+              onclick="filterByType('Full-time')">Full-time</button>
+      <button class="btn btn-outline btn-sm"
+              onclick="filterByType('Internship')">Internship</button>
+      <button class="btn btn-outline btn-sm"
+              onclick="filterByType('Remote')">Remote</button>
+    </div>
+  </div>
+
+  <!-- Jobs Grid -->
+  <div class="jobs-grid" id="jobsGrid">
+    <div th:each="job : ${jobs}" class="job-card"
+         th:data-type="${job.jobType}"
+         th:style="${job.expired} ? 'opacity:0.7;' : ''">
+
+      <!-- Top row with Expiry Badge -->
+      <div class="flex-between" style="margin-bottom:12px;">
+        <span class="badge badge-primary"
+              th:text="${job.category}">IT</span>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <span class="badge badge-pink"
+                th:text="${job.jobType}">Full-time</span>
+          <span th:if="${job.expiryDate != null}"
+                class="badge"
+                th:classappend="${job.expired} ?
+                                'badge-danger' : 'badge-success'"
+                th:text="${job.expired} ? '❌ Expired' :
+                         '✅ Till ' + ${#temporals.format(job.expiryDate,'dd MMM')}">
+          </span>
+        </div>
+      </div>
+
+      <!-- Company Logo + Title -->
+      <div style="display:flex; align-items:center;
+                  gap:10px; margin-bottom:10px;">
+        <div style="width:42px; height:42px; border-radius:10px;
+                    background:linear-gradient(135deg,var(--primary),var(--secondary));
+                    display:flex; align-items:center; justify-content:center;
+                    color:#fff; font-weight:900; font-size:1rem; flex-shrink:0;">
+          <span th:text="${#strings.substring(job.employer.companyName,0,1)}">A</span>
+        </div>
+        <div>
+          <h3 th:text="${job.title}" style="margin:0;"></h3>
+          <div class="company"
+               th:text="${job.employer.companyName}"></div>
+        </div>
+      </div>
+
+      <!-- Meta info -->
+      <div class="meta">
+        <span>📍 <span th:text="${job.location}">Chennai</span></span>
+        <span>💼 <span th:text="${job.experience}">Fresher</span></span>
+        <span>💰 <span th:text="${job.salary}">₹4-6 LPA</span></span>
+      </div>
+
+      <!-- Skills -->
+      <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:4px;">
+        <span th:each="skill : ${#strings.arraySplit(
+                       job.skillsRequired != null ?
+                       job.skillsRequired : '', ',')}"
+              class="badge badge-primary"
+              style="font-size:0.68rem;"
+              th:text="${#strings.trim(skill)}">Skill</span>
+      </div>
+
+      <!-- Footer -->
+      <div style="margin-top:14px; display:flex;
+                  justify-content:space-between; align-items:center;
+                  border-top:1px solid var(--border); padding-top:12px;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <small class="text-muted"
+                 th:text="'Posted ' + ${#temporals.format(job.postedAt,'dd MMM yyyy')}">
+          </small>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span th:if="${#lists.size(job.applications) >= 10}"
+                  class="badge badge-danger"
+                  style="font-size:0.68rem;">
+              🔥 Hot
+            </span>
+            <span th:if="${#lists.size(job.applications) == 0}"
+                  class="badge badge-success"
+                  style="font-size:0.68rem;">
+              🆕 New
+            </span>
+            <span style="font-size:0.75rem; color:var(--text-muted);
+                         display:flex; align-items:center; gap:4px;">
+              👥
+              <span th:text="${#lists.size(job.applications)}">0</span>
+              applicant<span th:if="${#lists.size(job.applications) != 1}">s</span>
+            </span>
+          </div>
+        </div>
+        <a th:if="${!job.expired}"
+           th:href="@{/jobs/{id}(id=${job.id})}"
+           class="btn btn-primary btn-sm">
+          View &amp; Apply →
+        </a>
+        <span th:if="${job.expired}"
+              class="badge badge-danger"
+              style="padding:6px 12px;">
+          Applications Closed
+        </span>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${#lists.isEmpty(jobs)}"
+         style="grid-column:1/-1; text-align:center;
+                padding:5rem 2rem; color:var(--text-muted);">
+      <div style="font-size:5rem; margin-bottom:1rem;">🔍</div>
+      <h3 style="font-size:1.4rem; font-weight:700;
+                 margin-bottom:0.5rem; color:var(--dark);">
+        No Jobs Found
+      </h3>
+      <p style="margin-bottom:1.5rem;">
+        Try different keywords or reset the filters.
+      </p>
+      <a th:href="@{/jobs/browse}" class="btn btn-primary">
+        Reset Filters
+      </a>
+    </div>
+  </div>
+
+  <div style="height:3rem;"></div>
+
+</div>
+
+<!-- Scripts -->
+<div th:replace="~{fragments/navbar :: scripts}"></div>
+
+<script>
+// ── Autocomplete ─────────────────────────────────────────────
+const suggestions = [
+  "Java", "Python", "JavaScript", "React", "Angular", "Vue",
+  "Spring Boot", "Node.js", "Django", "Flask", "PHP", "Laravel",
+  "MySQL", "PostgreSQL", "MongoDB", "Redis", "Docker", "Kubernetes",
+  "AWS", "Azure", "Git", "REST APIs", "GraphQL", "TypeScript",
+  "Flutter", "Android", "iOS", "Swift", "Kotlin", "C++", "C#",
+  "Machine Learning", "Data Science", "Artificial Intelligence",
+  "Deep Learning", "TensorFlow", "PyTorch", "Data Analyst",
+  "Full Stack", "Frontend", "Backend", "DevOps", "Cloud Engineer",
+  "Cybersecurity", "Blockchain", "UI/UX Designer",
+  "Accountant", "Financial Analyst", "Auditor", "Tax Consultant",
+  "Investment Banking", "Risk Management", "Excel", "Tally",
+  "Digital Marketing", "SEO", "Social Media", "Content Writer",
+  "Email Marketing", "Google Ads", "Brand Management",
+  "Project Manager", "Product Manager", "Business Analyst",
+  "Operations Manager", "HR Manager", "Team Lead",
+  "Doctor", "Nurse", "Pharmacist", "Lab Technician",
+  "Graphic Designer", "Figma", "Adobe XD", "Photoshop",
+  "Illustrator", "Video Editor", "Motion Graphics"
+];
+
+const input = document.getElementById('keywordInput');
+const list  = document.getElementById('autocompleteList');
+
+input?.addEventListener('input', function() {
+  const val = this.value.toLowerCase().trim();
+  list.innerHTML = '';
+
+  if (val.length < 1) {
+    list.style.display = 'none';
+    return;
+  }
+
+  const matches = suggestions
+    .filter(s => s.toLowerCase().includes(val))
+    .slice(0, 8);
+
+  if (matches.length === 0) {
+    list.style.display = 'none';
+    return;
+  }
+
+  matches.forEach(match => {
+    const item = document.createElement('div');
+    item.style.cssText = `
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s;
+    `;
+    item.innerHTML = '🔍 ' + match;
+
+    item.addEventListener('mouseenter', () => {
+      item.style.background = '#F0EEFF';
+    });
+    item.addEventListener('mouseleave', () => {
+      item.style.background = '#fff';
+    });
+    item.addEventListener('click', () => {
+      input.value = match;
+      list.style.display = 'none';
+      input.closest('form').submit();
+    });
+
+    list.appendChild(item);
+  });
+
+  list.style.display = 'block';
+});
+
+// Close on outside click
+document.addEventListener('click', function(e) {
+  if (e.target !== input) {
+    list.style.display = 'none';
+  }
+});
+
+// Keyboard navigation
+input?.addEventListener('keydown', function(e) {
+  const items  = list.querySelectorAll('div');
+  let active   = list.querySelector('.active-item');
+  let idx      = Array.from(items).indexOf(active);
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (active) {
+      active.classList.remove('active-item');
+      active.style.background = '#fff';
+    }
+    idx = (idx + 1) % items.length;
+    items[idx].classList.add('active-item');
+    items[idx].style.background = '#F0EEFF';
+    input.value = items[idx].textContent.replace('🔍 ', '').trim();
+  }
+
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (active) {
+      active.classList.remove('active-item');
+      active.style.background = '#fff';
+    }
+    idx = (idx - 1 + items.length) % items.length;
+    items[idx].classList.add('active-item');
+    items[idx].style.background = '#F0EEFF';
+    input.value = items[idx].textContent.replace('🔍 ', '').trim();
+  }
+
+  if (e.key === 'Escape') {
+    list.style.display = 'none';
+  }
+});
+
+// ── Filter by Job Type ───────────────────────────────────────
+function filterByType(type) {
+  document.querySelectorAll('.job-card').forEach(card => {
+    card.style.display =
+      (type === 'ALL' || card.dataset.type === type) ? '' : 'none';
+  });
+  document.querySelectorAll('.btn-outline.btn-sm').forEach(btn => {
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-outline');
+  });
+  event.target.classList.add('btn-primary');
+  event.target.classList.remove('btn-outline');
+}
+</script>
+
+</body>
+</html>

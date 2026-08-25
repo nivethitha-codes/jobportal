@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Company Profile — JobSpark</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div th:replace="~{fragments/navbar :: loading}"></div>
+
+<!-- Navbar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container mt-2">
+  <div style="max-width:700px; margin:0 auto;">
+
+    <!-- Header -->
+    <div class="flex-between mb-2">
+      <div>
+        <a th:href="@{/employer/dashboard}"
+           style="color:var(--text-muted); font-size:0.875rem;
+                  text-decoration:none; display:inline-flex;
+                  align-items:center; gap:6px; margin-bottom:8px;
+                  transition:color 0.2s;"
+           onmouseover="this.style.color='var(--primary)'"
+           onmouseout="this.style.color='var(--text-muted)'">
+          ← Back to Dashboard
+        </a>
+        <p style="color:var(--primary); font-size:0.875rem;
+                  font-weight:600; margin-bottom:4px;">
+          🏢 Company Profile
+        </p>
+        <h2 style="font-size:1.8rem; font-weight:900; letter-spacing:-0.5px;">
+          Edit Profile
+        </h2>
+        <p class="text-muted">Update your company details</p>
+      </div>
+    </div>
+
+    <!-- Success Alert -->
+    <div th:if="${param.updated}" class="alert alert-success">
+      ✅ Profile updated successfully!
+    </div>
+
+    <!-- Profile Header Card -->
+    <div class="profile-card mb-2">
+      <div style="position:relative; z-index:1;">
+        <div class="avatar">
+          <span th:text="${#strings.substring(user.companyName != null ?
+                          user.companyName : 'E', 0, 1)}">E</span>
+        </div>
+        <h3 style="font-size:1.3rem; font-weight:800; margin-bottom:4px;"
+            th:text="${user.companyName}">Company Name</h3>
+        <p style="color:rgba(255,255,255,0.6); font-size:0.875rem;"
+           th:text="${user.email}">email@company.com</p>
+        <div style="display:flex; gap:8px; justify-content:center; margin-top:10px;">
+          <span class="badge badge-warning">🏢 Employer</span>
+          <span th:if="${user.location != null}"
+                style="font-size:0.78rem; color:rgba(255,255,255,0.6);">
+            📍 <span th:text="${user.location}"></span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="card">
+      <h3 style="font-weight:700; margin-bottom:1.5rem; font-size:1rem;
+                 color:var(--primary);">
+        ✏️ Edit Company Information
+      </h3>
+
+      <form th:action="@{/employer/profile}" method="post">
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Contact Person Name</label>
+            <input type="text" name="fullName"
+                   th:value="${user.fullName}"
+                   placeholder="Your full name" required>
+          </div>
+          <div class="form-group">
+            <label>Company Name</label>
+            <input type="text" name="companyName"
+                   th:value="${user.companyName}"
+                   placeholder="Acme Corp" required>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="text" name="phone"
+                   th:value="${user.phone}"
+                   placeholder="+91 9876543210">
+          </div>
+          <div class="form-group">
+            <label>Company Location</label>
+            <input type="text" name="location"
+                   th:value="${user.location}"
+                   placeholder="Chennai, Tamil Nadu">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email"
+                 th:value="${user.email}"
+                 disabled
+                 style="background:#f9f9f9; cursor:not-allowed;
+                        opacity:0.7;">
+          <small class="text-muted">Email cannot be changed</small>
+        </div>
+
+        <!-- Company Info Box -->
+        <div style="background:var(--body-bg); border-radius:var(--radius);
+                    padding:1.25rem; margin-bottom:1.25rem;
+                    border:2px dashed var(--border);">
+          <p style="font-weight:700; font-size:0.875rem;
+                    margin-bottom:0.75rem; color:var(--dark);">
+            📊 Account Info
+          </p>
+          <div style="display:flex; gap:2rem; flex-wrap:wrap;">
+            <div>
+              <p style="font-size:0.78rem; color:var(--text-muted);">Role</p>
+              <span class="badge badge-warning">EMPLOYER</span>
+            </div>
+            <div>
+              <p style="font-size:0.78rem; color:var(--text-muted);">
+                Member Since
+              </p>
+              <p style="font-size:0.875rem; font-weight:600;"
+                 th:text="${user.createdAt != null ?
+                           #temporals.format(user.createdAt,'dd MMM yyyy') :
+                           'N/A'}">—</p>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary"
+                style="width:100%; padding:0.85rem;
+                       justify-content:center; font-size:1rem;">
+          Save Changes ✅
+        </button>
+
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<!-- Scripts -->
+<div th:replace="~{fragments/navbar :: scripts}"></div>
+
+</body>
+</html>

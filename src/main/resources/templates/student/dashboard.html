@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Dashboard — JobSpark</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div th:replace="~{fragments/navbar :: loading}"></div>
+
+<!-- Navbar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container mt-2">
+
+  <!-- Header -->
+  <div class="flex-between mb-2">
+    <div>
+      <p style="color:var(--primary); font-size:0.875rem;
+                font-weight:600; margin-bottom:4px;">
+        🎓 Student Dashboard
+      </p>
+      <h2 style="font-size:1.8rem; font-weight:900; letter-spacing:-0.5px;">
+        Hey, <span th:text="${user.fullName}"
+                   style="color:var(--primary);">Student</span> 👋
+      </h2>
+      <p class="text-muted">
+        Track your applications and discover new opportunities
+      </p>
+    </div>
+
+    <!-- Right side actions -->
+    <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+      <!-- Live Clock -->
+      <div style="background:linear-gradient(135deg,var(--dark),var(--dark2));
+                  color:#fff; padding:6px 14px; border-radius:20px;
+                  font-size:0.8rem; font-weight:600;" id="liveClock">
+        --:--:--
+      </div>
+      <!-- Resume Upload -->
+      <form th:action="@{/student/upload-resume}" method="post"
+            enctype="multipart/form-data"
+            style="display:flex; gap:8px; align-items:center;">
+        <input type="file" name="resume" accept=".pdf,.doc,.docx"
+               style="font-size:0.78rem;" required>
+        <button type="submit" class="btn btn-accent btn-sm">
+          📄 Upload Resume
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div th:if="${param.resumeUploaded}" class="alert alert-success">
+    ✅ Resume uploaded successfully!
+  </div>
+  <div th:if="${param.success}" class="alert alert-success">
+    🎉 Application submitted successfully!
+  </div>
+
+  <!-- Stats + Charts all inside ONE th:with block -->
+  <div th:with="total=${applications.size()},
+                shortlisted=${#lists.size(applications.?[status.name() == 'SHORTLISTED'])},
+                pending=${#lists.size(applications.?[status.name() == 'PENDING'])},
+                rejected=${#lists.size(applications.?[status.name() == 'REJECTED'])}">
+
+    <!-- Stat Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3 th:text="${total}">0</h3>
+        <p>Total Applications</p>
+        <div class="stat-icon">📋</div>
+      </div>
+      <div class="stat-card green">
+        <h3 th:text="${shortlisted}">0</h3>
+        <p>Shortlisted</p>
+        <div class="stat-icon">⭐</div>
+      </div>
+      <div class="stat-card orange">
+        <h3 th:text="${pending}">0</h3>
+        <p>Pending</p>
+        <div class="stat-icon">⏳</div>
+      </div>
+      <div class="stat-card red">
+        <h3 th:text="${rejected}">0</h3>
+        <p>Rejected</p>
+        <div class="stat-icon">❌</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid-2 mb-2" style="gap:1.5rem;">
+      <div class="card">
+        <h3 style="font-weight:700; margin-bottom:1.5rem; font-size:1rem;">
+          📊 Application Status Overview
+        </h3>
+        <div style="position:relative; height:220px;
+                    display:flex; align-items:center; justify-content:center;">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-weight:700; margin-bottom:1.5rem; font-size:1rem;">
+          📈 Applications Summary
+        </h3>
+        <div style="position:relative; height:220px;">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden values -->
+    <input type="hidden" id="val-pending"     th:value="${pending}">
+    <input type="hidden" id="val-shortlisted" th:value="${shortlisted}">
+    <input type="hidden" id="val-rejected"    th:value="${rejected}">
+    <input type="hidden" id="val-total"       th:value="${total}">
+
+  </div>
+
+  <!-- Profile Quick View -->
+  <div class="card mb-2"
+       style="background:linear-gradient(135deg,var(--dark),var(--dark2));
+              color:#fff;">
+    <div style="display:flex; align-items:center;
+                justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+      <div style="display:flex; align-items:center; gap:1rem;">
+        <div class="avatar" style="width:56px; height:56px; font-size:1.3rem;">
+          <span th:text="${#strings.substring(user.fullName,0,1)}">S</span>
+        </div>
+        <div>
+          <h3 style="font-weight:700; font-size:1rem;"
+              th:text="${user.fullName}">Student</h3>
+          <p style="font-size:0.8rem; opacity:0.7;"
+             th:text="${user.email}">email</p>
+          <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;">
+            <span th:if="${user.location != null}"
+                  style="font-size:0.75rem; opacity:0.7;">
+              📍 <span th:text="${user.location}"></span>
+            </span>
+            <span th:if="${user.skills != null}"
+                  style="font-size:0.75rem; opacity:0.7;">
+              💡 <span th:text="${user.skills}"></span>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <span th:if="${user.resumePath != null}"
+              class="badge badge-success">✅ Resume Uploaded</span>
+        <span th:if="${user.resumePath == null}"
+              class="badge badge-warning">⚠️ No Resume</span>
+        <a th:href="@{/student/profile}"
+           class="btn btn-glass btn-sm">Edit Profile</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Applications -->
+  <div class="flex-between mb-1">
+    <h3 style="font-weight:700;">Recent Applications</h3>
+    <a th:href="@{/student/applications}"
+       class="btn btn-outline btn-sm">View All →</a>
+  </div>
+
+  <div class="table-wrapper mb-2">
+    <table>
+      <thead>
+        <tr>
+          <th>Job Title</th>
+          <th>Company</th>
+          <th>Location</th>
+          <th>Applied On</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="app,appStat : ${applications}"
+            th:if="${appStat.count <= 5}">
+          <td style="font-weight:600;" th:text="${app.job.title}">—</td>
+          <td th:text="${app.job.employer.companyName}">—</td>
+          <td th:text="${app.job.location}">—</td>
+          <td th:text="${#temporals.format(app.appliedAt,'dd MMM yyyy')}">—</td>
+          <td>
+            <span class="badge"
+                  th:classappend="'status-' + ${app.status.name()}"
+                  th:text="${app.status}">PENDING</span>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(applications)}">
+          <td colspan="5"
+              style="text-align:center; color:var(--text-muted); padding:2rem;">
+            No applications yet.
+            <a th:href="@{/jobs/browse}"
+               style="color:var(--primary);">Browse jobs →</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Recommended Jobs -->
+  <div class="flex-between mb-1">
+    <h3 style="font-weight:700;">Recommended Jobs</h3>
+    <a th:href="@{/jobs/browse}" class="btn btn-outline btn-sm">View All →</a>
+  </div>
+
+  <div class="jobs-grid">
+    <div th:each="job : ${recentJobs}" class="job-card">
+      <div class="flex-between">
+        <span class="badge badge-primary" th:text="${job.category}">IT</span>
+        <span class="badge badge-pink"    th:text="${job.jobType}">Full-time</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+        <div style="width:36px; height:36px; border-radius:8px; flex-shrink:0;
+                    background:linear-gradient(135deg,var(--primary),var(--secondary));
+                    display:flex; align-items:center; justify-content:center;
+                    color:#fff; font-weight:900; font-size:0.9rem;">
+          <span th:text="${#strings.substring(job.employer.companyName,0,1)}">A</span>
+        </div>
+        <div>
+          <h3 th:text="${job.title}" style="margin:0; font-size:0.95rem;"></h3>
+          <div class="company" th:text="${job.employer.companyName}"></div>
+        </div>
+      </div>
+      <div class="meta" style="margin-top:8px;">
+        <span>📍 <span th:text="${job.location}"></span></span>
+        <span>💼 <span th:text="${job.experience}"></span></span>
+        <span>💰 <span th:text="${job.salary}"></span></span>
+      </div>
+      <div style="margin-top:12px;">
+        <a th:href="@{/jobs/{id}(id=${job.id})}"
+           class="btn btn-primary btn-sm">Apply Now →</a>
+      </div>
+    </div>
+    <div th:if="${#lists.isEmpty(recentJobs)}"
+         style="grid-column:1/-1; text-align:center;
+                padding:2rem; color:var(--text-muted);">
+      No jobs available right now. Check back later!
+    </div>
+  </div>
+
+  <div style="height:2rem;"></div>
+
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const pending     = parseInt(document.getElementById('val-pending').value)     || 0;
+  const shortlisted = parseInt(document.getElementById('val-shortlisted').value) || 0;
+  const rejected    = parseInt(document.getElementById('val-rejected').value)    || 0;
+  const total       = parseInt(document.getElementById('val-total').value)       || 0;
+
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Pending', 'Shortlisted', 'Rejected'],
+      datasets: [{
+        data: [pending, shortlisted, rejected],
+        backgroundColor: ['#F59E0B', '#10B981', '#EF4444'],
+        borderWidth: 0,
+        hoverOffset: 10
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            font: { size: 12 },
+            usePointStyle: true
+          }
+        }
+      },
+      cutout: '68%'
+    }
+  });
+
+  new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Total', 'Shortlisted', 'Pending', 'Rejected'],
+      datasets: [{
+        data: [total, shortlisted, pending, rejected],
+        backgroundColor: [
+          'rgba(124,58,237,0.85)',
+          'rgba(16,185,129,0.85)',
+          'rgba(245,158,11,0.85)',
+          'rgba(239,68,68,0.85)'
+        ],
+        borderRadius: 10,
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1 },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+</script>
+
+<!-- Scripts -->
+<div th:replace="~{fragments/navbar :: scripts}"></div>
+
+</body>
+</html>

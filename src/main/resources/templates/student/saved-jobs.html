@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Saved Jobs — JobSpark</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div th:replace="~{fragments/navbar :: loading}"></div>
+
+<!-- Navbar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container mt-2">
+
+  <!-- Header -->
+  <div class="flex-between mb-2">
+    <div>
+      <p style="color:var(--primary); font-size:0.875rem;
+                font-weight:600; margin-bottom:4px;">
+        🔖 Bookmarked Jobs
+      </p>
+      <h2 style="font-size:1.8rem; font-weight:900; letter-spacing:-0.5px;">
+        Saved Jobs
+      </h2>
+      <p class="text-muted">
+        Jobs you saved for later —
+        <span th:text="${savedJobs.size()}">0</span> saved
+      </p>
+    </div>
+    <a th:href="@{/jobs/browse}" class="btn btn-primary">
+      🔍 Browse More Jobs
+    </a>
+  </div>
+
+  <!-- Saved Jobs Grid -->
+  <div class="jobs-grid">
+    <div th:each="saved : ${savedJobs}" class="job-card">
+
+      <!-- Top row -->
+      <div class="flex-between" style="margin-bottom:12px;">
+        <span class="badge badge-primary"
+              th:text="${saved.job.category}">IT</span>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <span class="badge badge-pink"
+                th:text="${saved.job.jobType}">Full-time</span>
+          <span class="badge badge-warning"
+                style="font-size:0.68rem;">🔖 Saved</span>
+        </div>
+      </div>
+
+      <!-- Company + Title -->
+      <div style="display:flex; align-items:center;
+                  gap:10px; margin-bottom:10px;">
+        <div style="width:42px; height:42px; border-radius:10px;
+                    background:linear-gradient(135deg,var(--primary),var(--secondary));
+                    display:flex; align-items:center; justify-content:center;
+                    color:#fff; font-weight:900; font-size:1rem; flex-shrink:0;">
+          <span th:text="${#strings.substring(
+                           saved.job.employer.companyName,0,1)}">A</span>
+        </div>
+        <div>
+          <h3 th:text="${saved.job.title}" style="margin:0;"></h3>
+          <div class="company"
+               th:text="${saved.job.employer.companyName}"></div>
+        </div>
+      </div>
+
+      <!-- Meta -->
+      <div class="meta">
+        <span>📍 <span th:text="${saved.job.location}"></span></span>
+        <span>💼 <span th:text="${saved.job.experience}"></span></span>
+        <span>💰 <span th:text="${saved.job.salary}"></span></span>
+      </div>
+
+      <!-- Saved date -->
+      <div style="margin-top:8px;">
+        <small class="text-muted"
+               th:text="'Saved on ' +
+                        ${#temporals.format(saved.savedAt,'dd MMM yyyy')}">
+        </small>
+      </div>
+
+      <!-- Footer -->
+      <div style="margin-top:14px; display:flex; gap:8px;
+                  border-top:1px solid var(--border); padding-top:12px;">
+        <a th:href="@{/jobs/{id}(id=${saved.job.id})}"
+           class="btn btn-primary btn-sm"
+           style="flex:1; justify-content:center;">
+          Apply Now →
+        </a>
+        <!-- Unsave Button -->
+        <form th:action="@{/student/save-job/{id}(id=${saved.job.id})}"
+              method="post">
+          <button type="submit"
+                  class="btn btn-outline btn-sm"
+                  style="color:#991B1B; border-color:#FCA5A5;"
+                  onmouseover="this.style.background='#FEE2E2'"
+                  onmouseout="this.style.background='transparent'">
+            🗑️ Remove
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${#lists.isEmpty(savedJobs)}"
+         style="grid-column:1/-1; text-align:center;
+                padding:5rem 2rem; color:var(--text-muted);">
+      <div style="font-size:5rem; margin-bottom:1rem;">🔖</div>
+      <h3 style="font-size:1.4rem; font-weight:700;
+                 margin-bottom:0.5rem; color:var(--dark);">
+        No Saved Jobs Yet
+      </h3>
+      <p style="margin-bottom:1.5rem;">
+        Browse jobs and click the bookmark button to save them here!
+      </p>
+      <a th:href="@{/jobs/browse}" class="btn btn-primary">
+        Browse Jobs →
+      </a>
+    </div>
+  </div>
+
+  <div style="height:2rem;"></div>
+
+</div>
+
+<!-- Scripts -->
+<div th:replace="~{fragments/navbar :: scripts}"></div>
+
+</body>
+</html>

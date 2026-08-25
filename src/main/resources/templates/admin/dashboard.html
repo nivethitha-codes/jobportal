@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard — JobSpark</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div th:replace="~{fragments/navbar :: loading}"></div>
+
+<!-- Navbar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container mt-2">
+
+  <!-- Header -->
+  <div class="flex-between mb-2">
+    <div>
+      <p style="color:var(--primary); font-size:0.875rem;
+                font-weight:600; margin-bottom:4px;">
+        🛡️ Admin Control Panel
+      </p>
+      <h2 style="font-size:1.8rem; font-weight:900; letter-spacing:-0.5px;">
+        Admin Dashboard
+      </h2>
+      <p class="text-muted">
+        Complete overview of the entire JobSpark platform
+      </p>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <div style="background:linear-gradient(135deg,var(--dark),var(--dark2));
+                  color:#fff; padding:6px 14px; border-radius:20px;
+                  font-size:0.8rem; font-weight:600;" id="liveClock">
+        --:--:--
+      </div>
+      <a th:href="@{/jobs/browse}"
+         class="btn btn-outline btn-sm">View Public Site</a>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div th:if="${param.userDeleted}"
+       class="alert alert-success">
+    ✅ User deleted successfully!
+  </div>
+  <div th:if="${param.selfDelete}"
+       class="alert alert-danger">
+    ❌ You cannot delete your own account!
+  </div>
+
+  <!-- ═══ PLATFORM STATS ═══════════════════════════════════ -->
+  <div style="margin-bottom:0.5rem;">
+    <span class="section-tag">Platform Overview</span>
+  </div>
+
+  <div class="stats-grid mb-2">
+    <div class="stat-card">
+      <h3 th:text="${totalUsers}">0</h3>
+      <p>Total Users</p>
+      <div class="stat-icon">👥</div>
+    </div>
+    <div class="stat-card green">
+      <h3 th:text="${totalStudents}">0</h3>
+      <p>Job Seekers</p>
+      <div class="stat-icon">🎓</div>
+    </div>
+    <div class="stat-card pink">
+      <h3 th:text="${totalEmployers}">0</h3>
+      <p>Employers</p>
+      <div class="stat-icon">🏢</div>
+    </div>
+    <div class="stat-card orange">
+      <h3 th:text="${totalJobs}">0</h3>
+      <p>Total Jobs</p>
+      <div class="stat-icon">💼</div>
+    </div>
+    <div class="stat-card">
+      <h3 th:text="${totalActiveJobs}">0</h3>
+      <p>Active Jobs</p>
+      <div class="stat-icon">✅</div>
+    </div>
+    <div class="stat-card red">
+      <h3 th:text="${totalApplications}">0</h3>
+      <p>Applications</p>
+      <div class="stat-icon">📋</div>
+    </div>
+    <div class="stat-card green">
+      <h3 th:text="${totalShortlisted}">0</h3>
+      <p>Shortlisted</p>
+      <div class="stat-icon">⭐</div>
+    </div>
+    <div class="stat-card orange">
+      <h3 th:text="${totalPending}">0</h3>
+      <p>Pending</p>
+      <div class="stat-icon">⏳</div>
+    </div>
+  </div>
+
+  <!-- ═══ CHARTS ════════════════════════════════════════════ -->
+  <div class="grid-2 mb-2" style="gap:1.5rem;">
+    <div class="card">
+      <h3 style="font-weight:700; margin-bottom:1.5rem; font-size:1rem;">
+        👥 User Distribution
+      </h3>
+      <div style="position:relative; height:220px;
+                  display:flex; align-items:center; justify-content:center;">
+        <canvas id="userChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-weight:700; margin-bottom:1.5rem; font-size:1rem;">
+        📊 Application Status
+      </h3>
+      <div style="position:relative; height:220px;
+                  display:flex; align-items:center; justify-content:center;">
+        <canvas id="appChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-weight:700; margin-bottom:1.5rem; font-size:1rem;">
+        💼 Jobs Overview
+      </h3>
+      <div style="position:relative; height:220px;">
+        <canvas id="jobChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-weight:700; margin-bottom:1.5rem; font-size:1rem;">
+        📈 Platform Summary
+      </h3>
+      <div style="position:relative; height:220px;">
+        <canvas id="summaryChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden chart values -->
+  <input type="hidden" id="v-students"    th:value="${totalStudents}">
+  <input type="hidden" id="v-employers"   th:value="${totalEmployers}">
+  <input type="hidden" id="v-shortlisted" th:value="${totalShortlisted}">
+  <input type="hidden" id="v-pending"     th:value="${totalPending}">
+  <input type="hidden" id="v-rejected"    th:value="${totalRejected}">
+  <input type="hidden" id="v-activejobs"  th:value="${totalActiveJobs}">
+  <input type="hidden" id="v-totaljobs"   th:value="${totalJobs}">
+  <input type="hidden" id="v-totalapps"   th:value="${totalApplications}">
+  <input type="hidden" id="v-totalusers"  th:value="${totalUsers}">
+
+  <!-- ═══ STUDENT SIDE ══════════════════════════════════════ -->
+  <div style="margin:2rem 0 1rem;">
+    <span class="section-tag">Student Side</span>
+    <h3 style="font-weight:700; font-size:1.1rem; margin-top:4px;">
+      🎓 Recent Job Seekers
+    </h3>
+  </div>
+
+  <div class="table-wrapper mb-2">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Full Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Location</th>
+          <th>Skills</th>
+          <th>Resume</th>
+          <th>Joined On</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="student, st : ${recentStudents}">
+          <td style="color:var(--text-muted);"
+              th:text="${st.count}">1</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:30px; height:30px; border-radius:50%;
+                          background:linear-gradient(135deg,var(--primary),var(--secondary));
+                          display:flex; align-items:center; justify-content:center;
+                          color:#fff; font-weight:900; font-size:0.75rem;
+                          flex-shrink:0;">
+                <span th:text="${#strings.substring(student.fullName,0,1)}">S</span>
+              </div>
+              <span style="font-weight:700;"
+                    th:text="${student.fullName}">—</span>
+            </div>
+          </td>
+          <td style="font-size:0.8rem;"
+              th:text="${student.email}">—</td>
+          <td style="font-size:0.8rem;"
+              th:text="${student.phone != null ? student.phone : '—'}">—</td>
+          <td style="font-size:0.8rem;"
+              th:text="${student.location != null ? student.location : '—'}">—</td>
+          <td>
+            <span class="badge badge-primary"
+                  th:if="${student.skills != null}"
+                  th:text="${#strings.length(student.skills) > 20 ?
+                            #strings.substring(student.skills,0,20) + '...' :
+                            student.skills}">—</span>
+            <span th:if="${student.skills == null}"
+                  class="text-muted">—</span>
+          </td>
+          <td>
+            <span class="badge badge-success"
+                  th:if="${student.resumePath != null}">✅ Yes</span>
+            <span class="badge badge-warning"
+                  th:if="${student.resumePath == null}">⚠️ No</span>
+          </td>
+          <td style="font-size:0.8rem;"
+              th:text="${student.createdAt != null ?
+                        #temporals.format(student.createdAt,'dd MMM yyyy') :
+                        '—'}">—</td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(recentStudents)}">
+          <td colspan="8"
+              style="text-align:center; color:var(--text-muted); padding:2rem;">
+            No students registered yet.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ ALL APPLICATIONS ══════════════════════════════════ -->
+  <div style="margin:2rem 0 1rem;">
+    <div class="flex-between">
+      <div>
+        <span class="section-tag">Applications Overview</span>
+        <h3 style="font-weight:700; font-size:1.1rem; margin-top:4px;">
+          📋 All Applications
+        </h3>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-primary btn-sm"
+                onclick="filterApps('ALL',this)">All</button>
+        <button class="btn btn-outline btn-sm"
+                onclick="filterApps('PENDING',this)">Pending</button>
+        <button class="btn btn-outline btn-sm"
+                onclick="filterApps('SHORTLISTED',this)">Shortlisted</button>
+        <button class="btn btn-outline btn-sm"
+                onclick="filterApps('REJECTED',this)">Rejected</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrapper mb-2">
+    <table id="appTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Student</th>
+          <th>Job Title</th>
+          <th>Company</th>
+          <th>Applied On</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="app, appStat : ${allApplications}"
+            th:data-status="${app.status.name()}">
+          <td style="color:var(--text-muted);"
+              th:text="${appStat.count}">1</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:28px; height:28px; border-radius:50%;
+                          background:linear-gradient(135deg,var(--primary),var(--secondary));
+                          display:flex; align-items:center; justify-content:center;
+                          color:#fff; font-weight:900; font-size:0.7rem;
+                          flex-shrink:0;">
+                <span th:text="${#strings.substring(
+                               app.applicant.fullName,0,1)}">S</span>
+              </div>
+              <div>
+                <div style="font-weight:700; font-size:0.875rem;"
+                     th:text="${app.applicant.fullName}">—</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);"
+                     th:text="${app.applicant.email}">—</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-weight:600;"
+              th:text="${app.job.title}">—</td>
+          <td th:text="${app.job.employer.companyName}">—</td>
+          <td style="font-size:0.8rem;"
+              th:text="${#temporals.format(app.appliedAt,'dd MMM yyyy')}">—</td>
+          <td>
+            <span class="badge"
+                  th:classappend="'status-' + ${app.status.name()}"
+                  th:text="${app.status}">PENDING</span>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(allApplications)}">
+          <td colspan="6"
+              style="text-align:center; color:var(--text-muted); padding:2rem;">
+            No applications yet.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ EMPLOYER SIDE ═════════════════════════════════════ -->
+  <div style="margin:2rem 0 1rem;">
+    <span class="section-tag">Employer Side</span>
+    <h3 style="font-weight:700; font-size:1.1rem; margin-top:4px;">
+      🏢 Recent Employers
+    </h3>
+  </div>
+
+  <div class="table-wrapper mb-2">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Contact Person</th>
+          <th>Email</th>
+          <th>Company</th>
+          <th>Phone</th>
+          <th>Location</th>
+          <th>Joined On</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="employer, empStat : ${recentEmployers}">
+          <td style="color:var(--text-muted);"
+              th:text="${empStat.count}">1</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:30px; height:30px; border-radius:50%;
+                          background:linear-gradient(135deg,#F59E0B,#D97706);
+                          display:flex; align-items:center; justify-content:center;
+                          color:#fff; font-weight:900; font-size:0.75rem;
+                          flex-shrink:0;">
+                <span th:text="${#strings.substring(employer.fullName,0,1)}">E</span>
+              </div>
+              <span style="font-weight:700;"
+                    th:text="${employer.fullName}">—</span>
+            </div>
+          </td>
+          <td style="font-size:0.8rem;"
+              th:text="${employer.email}">—</td>
+          <td>
+            <span class="badge badge-warning"
+                  th:text="${employer.companyName != null ?
+                            employer.companyName : '—'}">—</span>
+          </td>
+          <td style="font-size:0.8rem;"
+              th:text="${employer.phone != null ? employer.phone : '—'}">—</td>
+          <td style="font-size:0.8rem;"
+              th:text="${employer.location != null ? employer.location : '—'}">—</td>
+          <td style="font-size:0.8rem;"
+              th:text="${employer.createdAt != null ?
+                        #temporals.format(employer.createdAt,'dd MMM yyyy') :
+                        '—'}">—</td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(recentEmployers)}">
+          <td colspan="7"
+              style="text-align:center; color:var(--text-muted); padding:2rem;">
+            No employers registered yet.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ ALL JOBS ══════════════════════════════════════════ -->
+  <div style="margin:2rem 0 1rem;">
+    <div class="flex-between">
+      <div>
+        <span class="section-tag">Jobs Overview</span>
+        <h3 style="font-weight:700; font-size:1.1rem; margin-top:4px;">
+          💼 All Job Postings
+        </h3>
+      </div>
+      <a th:href="@{/jobs/browse}"
+         class="btn btn-outline btn-sm">View Public →</a>
+    </div>
+  </div>
+
+  <div class="table-wrapper mb-2">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Job Title</th>
+          <th>Company</th>
+          <th>Category</th>
+          <th>Location</th>
+          <th>Posted On</th>
+          <th>Applicants</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="job, jobStat : ${allJobs}">
+          <td style="color:var(--text-muted);"
+              th:text="${jobStat.count}">1</td>
+          <td style="font-weight:700;"
+              th:text="${job.title}">—</td>
+          <td th:text="${job.employer.companyName}">—</td>
+          <td>
+            <span class="badge badge-primary"
+                  th:text="${job.category}">—</span>
+          </td>
+          <td style="font-size:0.8rem;"
+              th:text="${job.location}">—</td>
+          <td style="font-size:0.8rem;"
+              th:text="${#temporals.format(job.postedAt,'dd MMM yyyy')}">—</td>
+          <td style="text-align:center; font-weight:900;
+                     color:var(--primary);"
+              th:text="${#lists.size(job.applications)}">0</td>
+          <td>
+            <span class="badge"
+                  th:classappend="${job.status.name() == 'ACTIVE'} ?
+                                  'badge-success' : 'badge-danger'"
+                  th:text="${job.status}">—</span>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(allJobs)}">
+          <td colspan="8"
+              style="text-align:center; color:var(--text-muted); padding:2rem;">
+            No jobs posted yet.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ ALL USERS ═════════════════════════════════════════ -->
+  <div style="margin:2rem 0 1rem;">
+    <span class="section-tag">All Users</span>
+    <h3 style="font-weight:700; font-size:1.1rem; margin-top:4px;">
+      👤 Complete User List
+    </h3>
+  </div>
+
+  <div class="table-wrapper mb-2">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Full Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Location</th>
+          <th>Joined On</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="u, uStat : ${allUsers}">
+          <td style="color:var(--text-muted);"
+              th:text="${uStat.count}">1</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:30px; height:30px; border-radius:50%;
+                          display:flex; align-items:center; justify-content:center;
+                          color:#fff; font-weight:900; font-size:0.75rem;
+                          flex-shrink:0;"
+                   th:style="${u.role.name() == 'ADMIN'} ?
+                             'background:linear-gradient(135deg,#EF4444,#DC2626)' :
+                             (${u.role.name() == 'EMPLOYER'} ?
+                             'background:linear-gradient(135deg,#F59E0B,#D97706)' :
+                             'background:linear-gradient(135deg,#7C3AED,#EC4899)')">
+                <span th:text="${#strings.substring(u.fullName,0,1)}">U</span>
+              </div>
+              <span style="font-weight:700;"
+                    th:text="${u.fullName}">—</span>
+            </div>
+          </td>
+          <td style="font-size:0.8rem;"
+              th:text="${u.email}">—</td>
+          <td>
+            <span class="badge"
+                  th:classappend="${u.role.name() == 'ADMIN'} ? 'badge-danger' :
+                                  (${u.role.name() == 'EMPLOYER'} ?
+                                  'badge-warning' : 'badge-primary')"
+                  th:text="${u.role}">—</span>
+          </td>
+          <td style="font-size:0.8rem;"
+              th:text="${u.location != null ? u.location : '—'}">—</td>
+          <td style="font-size:0.8rem;"
+              th:text="${u.createdAt != null ?
+                        #temporals.format(u.createdAt,'dd MMM yyyy') :
+                        '—'}">—</td>
+          <td>
+            <!-- Delete Button — only for non-admin -->
+            <form th:if="${u.role.name() != 'ADMIN'}"
+                  th:action="@{/admin/delete-user/{id}(id=${u.id})}"
+                  method="post"
+                  onsubmit="return confirm('Delete this user? Cannot be undone!');">
+              <button type="submit"
+                      class="btn btn-danger btn-sm">
+                🗑️ Delete
+              </button>
+            </form>
+            <!-- Protected badge for admin -->
+            <span th:if="${u.role.name() == 'ADMIN'}"
+                  class="badge badge-danger"
+                  style="font-size:0.7rem;">
+              🛡️ Protected
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="height:2rem;"></div>
+
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const students    = parseInt(document.getElementById('v-students').value)    || 0;
+  const employers   = parseInt(document.getElementById('v-employers').value)   || 0;
+  const shortlisted = parseInt(document.getElementById('v-shortlisted').value) || 0;
+  const pending     = parseInt(document.getElementById('v-pending').value)     || 0;
+  const rejected    = parseInt(document.getElementById('v-rejected').value)    || 0;
+  const activeJobs  = parseInt(document.getElementById('v-activejobs').value)  || 0;
+  const totalJobs   = parseInt(document.getElementById('v-totaljobs').value)   || 0;
+  const totalApps   = parseInt(document.getElementById('v-totalapps').value)   || 0;
+  const totalUsers  = parseInt(document.getElementById('v-totalusers').value)  || 0;
+  const closedJobs  = totalJobs - activeJobs;
+
+  new Chart(document.getElementById('userChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Job Seekers', 'Employers'],
+      datasets: [{
+        data: [students || 1, employers],
+        backgroundColor: ['#7C3AED', '#EC4899'],
+        borderWidth: 0, hoverOffset: 10
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom',
+        labels: { padding: 20, font: { size: 12 }, usePointStyle: true }
+      }},
+      cutout: '65%'
+    }
+  });
+
+  new Chart(document.getElementById('appChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Shortlisted', 'Pending', 'Rejected'],
+      datasets: [{
+        data: [shortlisted || 1, pending, rejected],
+        backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+        borderWidth: 0, hoverOffset: 10
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom',
+        labels: { padding: 20, font: { size: 12 }, usePointStyle: true }
+      }},
+      cutout: '65%'
+    }
+  });
+
+  new Chart(document.getElementById('jobChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Total', 'Active', 'Closed'],
+      datasets: [{
+        data: [totalJobs, activeJobs, closedJobs],
+        backgroundColor: [
+          'rgba(124,58,237,0.85)',
+          'rgba(16,185,129,0.85)',
+          'rgba(239,68,68,0.85)'
+        ],
+        borderRadius: 10, borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 },
+             grid: { color: 'rgba(0,0,0,0.05)' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('summaryChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Users', 'Jobs', 'Applications', 'Shortlisted'],
+      datasets: [{
+        data: [totalUsers, totalJobs, totalApps, shortlisted],
+        backgroundColor: [
+          'rgba(124,58,237,0.85)',
+          'rgba(245,158,11,0.85)',
+          'rgba(59,130,246,0.85)',
+          'rgba(16,185,129,0.85)'
+        ],
+        borderRadius: 10, borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 },
+             grid: { color: 'rgba(0,0,0,0.05)' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  function filterApps(status, btn) {
+    document.querySelectorAll('#appTable tbody tr').forEach(row => {
+      row.style.display =
+        (status === 'ALL' || row.dataset.status === status) ? '' : 'none';
+    });
+    document.querySelectorAll('.btn-sm').forEach(b => {
+      b.classList.remove('btn-primary');
+      b.classList.add('btn-outline');
+    });
+    if (btn) {
+      btn.classList.add('btn-primary');
+      btn.classList.remove('btn-outline');
+    }
+  }
+</script>
+
+<!-- Scripts -->
+<div th:replace="~{fragments/navbar :: scripts}"></div>
+
+</body>
+</html>
