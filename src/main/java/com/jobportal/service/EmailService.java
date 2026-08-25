@@ -1,19 +1,29 @@
 package com.jobportal.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import jakarta.mail.internet.MimeMessage;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    @Value("${resend.api.key}")
+    private String resendApiKey;
+
+    @Value("${resend.from.email}")
+    private String fromEmail;
+
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 
     @Async
     public void sendApplicationStatusEmail(String toEmail,
@@ -21,22 +31,62 @@ public class EmailService {
                                            String jobTitle,
                                            String companyName,
                                            String status) {
+        String html = buildEmailTemplate(studentName, jobTitle, companyName, status);
+        String subject = "JobSpark — Application Update: " + jobTitle;
+        sendViaResend(toEmail, subject, html, "Email");
+    }
+
+    @Async
+    public void sendOtpEmail(String toEmail, String userName, String otp) {
+        String html = buildOtpTemplate(userName, otp);
+        String subject = "JobSpark — Your OTP Verification Code";
+        sendViaResend(toEmail, subject, html, "OTP");
+    }
+
+    private void sendViaResend(String toEmail, String subject, String html, String type) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper =
-                new MimeMessageHelper(message, true, "UTF-8");
+            String escapedHtml = html.replace("\"", "\\\"").replace("\n", "\\n");
 
-            helper.setTo(toEmail);
-            helper.setSubject("JobSpark — Application Update: " + jobTitle);
-            helper.setText(buildEmailTemplate(
-                studentName, jobTitle, companyName, status), true);
+            String jsonBody = """
+                {
+                  "from": "%s",
+                  "to": "%s",
+                  "subject": "%s",
+                  "html": "%s"
+                }
+                """.formatted(fromEmail, toEmail, subject, escapedHtml);
 
-            mailSender.send(message);
-            log.info("✅ Email sent successfully to: {}", toEmail);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.resend.com/emails"))
+                    .header("Authorization", "Bearer " + resendApiKey)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                if (type.equals("OTP")) {
+                    log.info("✅ OTP email sent to: {}", toEmail);
+                } else {
+                    log.info("✅ Email sent successfully to: {}", toEmail);
+                }
+            } else {
+                if (type.equals("OTP")) {
+                    log.error("❌ Failed to send OTP to {}: status {} body {}",
+                            toEmail, response.statusCode(), response.body());
+                } else {
+                    log.error("❌ Failed to send email to {}: status {} body {}",
+                            toEmail, response.statusCode(), response.body());
+                }
+            }
 
         } catch (Exception e) {
-            log.error("❌ Failed to send email to {}: {}",
-                toEmail, e.getMessage());
+            if (type.equals("OTP")) {
+                log.error("❌ Failed to send OTP to {}: {}", toEmail, e.getMessage());
+            } else {
+                log.error("❌ Failed to send email to {}: {}", toEmail, e.getMessage());
+            }
         }
     }
 
@@ -158,28 +208,6 @@ public class EmailService {
                 jobTitle, companyName,
                 statusMsg
             );
-    }
- // ── Send OTP Email ───────────────────────────────────────────
-    @Async
-    public void sendOtpEmail(String toEmail,
-                              String userName,
-                              String otp) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper =
-                new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setTo(toEmail);
-            helper.setSubject("JobSpark — Your OTP Verification Code");
-            helper.setText(buildOtpTemplate(userName, otp), true);
-
-            mailSender.send(message);
-            log.info("✅ OTP email sent to: {}", toEmail);
-
-        } catch (Exception e) {
-            log.error("❌ Failed to send OTP to {}: {}",
-                toEmail, e.getMessage());
-        }
     }
 
     private String buildOtpTemplate(String userName, String otp) {
