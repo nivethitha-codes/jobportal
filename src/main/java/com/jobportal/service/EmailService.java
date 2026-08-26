@@ -1,19 +1,31 @@
 package com.jobportal.service;
 
-import lombok.RequiredArgsConstructor;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import jakarta.mail.internet.MimeMessage;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    @Value("${SENDGRID_API_KEY}")
+    private String sendGridApiKey;
+
+    @Value("${MAIL_USERNAME}")
+    private String senderEmail;
+
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // ── Application Status Email ──────────────────────────────────
     @Async
@@ -22,24 +34,9 @@ public class EmailService {
                                            String jobTitle,
                                            String companyName,
                                            String status) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper =
-                new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setTo(toEmail);
-            helper.setSubject("JobSpark — Application Update: "
-                + jobTitle);
-            helper.setText(buildEmailTemplate(
-                studentName, jobTitle, companyName, status), true);
-
-            mailSender.send(message);
-            log.info("✅ Email sent successfully to: {}", toEmail);
-
-        } catch (Exception e) {
-            log.error("❌ Failed to send email to {}: {}",
-                toEmail, e.getMessage());
-        }
+        String subject = "JobSpark — Application Update: " + jobTitle;
+        String html = buildEmailTemplate(studentName, jobTitle, companyName, status);
+        sendViaSendGrid(toEmail, subject, html);
     }
 
     // ── OTP Email ─────────────────────────────────────────────────
@@ -47,22 +44,55 @@ public class EmailService {
     public void sendOtpEmail(String toEmail,
                               String userName,
                               String otp) {
+        String subject = "JobSpark — Your OTP Verification Code";
+        String html = buildOtpTemplate(userName, otp);
+        sendViaSendGrid(toEmail, subject, html);
+    }
+
+    // ── Core sender using SendGrid HTTPS API ───────────────────────
+    private void sendViaSendGrid(String toEmail, String subject, String htmlContent) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper =
-                new MimeMessageHelper(message, true, "UTF-8");
+            Map<String, Object> toEntry = new HashMap<>();
+            toEntry.put("email", toEmail);
 
-            helper.setTo(toEmail);
-            helper.setSubject(
-                "JobSpark — Your OTP Verification Code");
-            helper.setText(buildOtpTemplate(userName, otp), true);
+            Map<String, Object> personalization = new HashMap<>();
+            personalization.put("to", List.of(toEntry));
 
-            mailSender.send(message);
-            log.info("✅ OTP email sent to: {}", toEmail);
+            Map<String, Object> from = new HashMap<>();
+            from.put("email", senderEmail);
+            from.put("name", "JobSpark");
+
+            Map<String, Object> content = new HashMap<>();
+            content.put("type", "text/html");
+            content.put("value", htmlContent);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("personalizations", List.of(personalization));
+            body.put("from", from);
+            body.put("subject", subject);
+            body.put("content", List.of(content));
+
+            String jsonBody = objectMapper.writeValueAsString(body);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.sendgrid.com/v3/mail/send"))
+                .header("Authorization", "Bearer " + sendGridApiKey)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+            HttpResponse<String> response =
+                httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                log.info("✅ Email sent successfully to: {}", toEmail);
+            } else {
+                log.error("❌ Failed to send email to {}: HTTP {} — {}",
+                    toEmail, response.statusCode(), response.body());
+            }
 
         } catch (Exception e) {
-            log.error("❌ Failed to send OTP to {}: {}",
-                toEmail, e.getMessage());
+            log.error("❌ Failed to send email to {}: {}", toEmail, e.getMessage());
         }
     }
 
