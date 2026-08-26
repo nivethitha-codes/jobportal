@@ -1,100 +1,76 @@
 package com.jobportal.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import jakarta.mail.internet.MimeMessage;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class EmailService {
 
-    @Value("${resend.api.key}")
-    private String resendApiKey;
+    private final JavaMailSender mailSender;
 
-    @Value("${resend.from.email}")
-    private String fromEmail;
-
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build();
-
+    // ── Application Status Email ──────────────────────────────────
     @Async
     public void sendApplicationStatusEmail(String toEmail,
                                            String studentName,
                                            String jobTitle,
                                            String companyName,
                                            String status) {
-        String html = buildEmailTemplate(studentName, jobTitle, companyName, status);
-        String subject = "JobSpark — Application Update: " + jobTitle;
-        sendViaResend(toEmail, subject, html, "Email");
-    }
-
-    @Async
-    public void sendOtpEmail(String toEmail, String userName, String otp) {
-        String html = buildOtpTemplate(userName, otp);
-        String subject = "JobSpark — Your OTP Verification Code";
-        sendViaResend(toEmail, subject, html, "OTP");
-    }
-
-    private void sendViaResend(String toEmail, String subject, String html, String type) {
         try {
-            String escapedHtml = html.replace("\"", "\\\"").replace("\n", "\\n");
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper =
+                new MimeMessageHelper(message, true, "UTF-8");
 
-            String jsonBody = """
-                {
-                  "from": "%s",
-                  "to": "%s",
-                  "subject": "%s",
-                  "html": "%s"
-                }
-                """.formatted(fromEmail, toEmail, subject, escapedHtml);
+            helper.setTo(toEmail);
+            helper.setSubject("JobSpark — Application Update: "
+                + jobTitle);
+            helper.setText(buildEmailTemplate(
+                studentName, jobTitle, companyName, status), true);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.resend.com/emails"))
-                    .header("Authorization", "Bearer " + resendApiKey)
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                if (type.equals("OTP")) {
-                    log.info("✅ OTP email sent to: {}", toEmail);
-                } else {
-                    log.info("✅ Email sent successfully to: {}", toEmail);
-                }
-            } else {
-                if (type.equals("OTP")) {
-                    log.error("❌ Failed to send OTP to {}: status {} body {}",
-                            toEmail, response.statusCode(), response.body());
-                } else {
-                    log.error("❌ Failed to send email to {}: status {} body {}",
-                            toEmail, response.statusCode(), response.body());
-                }
-            }
+            mailSender.send(message);
+            log.info("✅ Email sent successfully to: {}", toEmail);
 
         } catch (Exception e) {
-            if (type.equals("OTP")) {
-                log.error("❌ Failed to send OTP to {}: {}", toEmail, e.getMessage());
-            } else {
-                log.error("❌ Failed to send email to {}: {}", toEmail, e.getMessage());
-            }
+            log.error("❌ Failed to send email to {}: {}",
+                toEmail, e.getMessage());
         }
     }
 
+    // ── OTP Email ─────────────────────────────────────────────────
+    @Async
+    public void sendOtpEmail(String toEmail,
+                              String userName,
+                              String otp) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper =
+                new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject(
+                "JobSpark — Your OTP Verification Code");
+            helper.setText(buildOtpTemplate(userName, otp), true);
+
+            mailSender.send(message);
+            log.info("✅ OTP email sent to: {}", toEmail);
+
+        } catch (Exception e) {
+            log.error("❌ Failed to send OTP to {}: {}",
+                toEmail, e.getMessage());
+        }
+    }
+
+    // ── Email Template ────────────────────────────────────────────
     private String buildEmailTemplate(String studentName,
                                       String jobTitle,
                                       String companyName,
                                       String status) {
-
         String statusColor = status.equals("SHORTLISTED")
             ? "#10B981" : "#EF4444";
         String statusIcon  = status.equals("SHORTLISTED")
@@ -102,103 +78,104 @@ public class EmailService {
         String statusText  = status.equals("SHORTLISTED")
             ? "Shortlisted" : "Not Selected";
         String statusMsg   = status.equals("SHORTLISTED")
-            ? "Congratulations! You have been shortlisted for this position. "
-            + "The employer will contact you soon for the next steps. "
-            + "Keep up the great work!"
+            ? "Congratulations! You have been shortlisted for this "
+            + "position. The employer will contact you soon for "
+            + "the next steps. Keep up the great work!"
             : "Thank you for your interest in this position. "
-            + "Unfortunately your application was not selected this time. "
-            + "Don't give up — keep applying and the right opportunity will come!";
+            + "Unfortunately your application was not selected "
+            + "this time. Don't give up — keep applying and "
+            + "the right opportunity will come!";
 
         return """
             <!DOCTYPE html>
             <html>
-            <head>
-              <meta charset="UTF-8">
-            </head>
-            <body style="margin:0; padding:0; font-family:Arial,sans-serif;
-                         background:#F0EEFF;">
-              <div style="max-width:600px; margin:40px auto; background:#ffffff;
-                          border-radius:20px; overflow:hidden;
-                          box-shadow:0 8px 32px rgba(124,58,237,0.15);">
+            <head><meta charset="UTF-8"></head>
+            <body style="margin:0; padding:0;
+                         font-family:Arial,sans-serif;
+                         background:#F5F3FF;">
+              <div style="max-width:600px; margin:40px auto;
+                          background:#ffffff; border-radius:20px;
+                          overflow:hidden;
+                          box-shadow:0 8px 32px rgba(109,40,217,0.15);">
 
-                <!-- Header -->
-                <div style="background:linear-gradient(135deg,#0A0A1A,#1A1A3E);
+                <div style="background:linear-gradient(
+                              135deg,#1E1030,#2D1B69);
                             padding:40px; text-align:center;">
-                  <div style="font-size:2rem; font-weight:900; color:#ffffff;
-                              letter-spacing:-1px;">
-                    Job<span style="color:#7C3AED;">Spark</span>
+                  <div style="font-size:2rem; font-weight:900;
+                              color:#ffffff; letter-spacing:-1px;">
+                    Job<span style="color:#D97706;">Spark</span>
                   </div>
-                  <p style="color:rgba(255,255,255,0.5); margin-top:8px;
-                             font-size:0.875rem;">
+                  <p style="color:rgba(255,255,255,0.5);
+                             margin-top:8px; font-size:0.875rem;">
                     Application Status Update
                   </p>
                 </div>
 
-                <!-- Body -->
                 <div style="padding:40px;">
                   <h2 style="font-size:1.5rem; font-weight:900;
-                              color:#1A1A2E; margin-bottom:8px;">
+                              color:#1E1030; margin-bottom:8px;">
                     Hey %s! %s
                   </h2>
-                  <p style="color:#6B7280; line-height:1.7; margin-bottom:24px;">
+                  <p style="color:#6B7280; line-height:1.7;
+                             margin-bottom:24px;">
                     Your application status has been updated.
-                    Here are the details:
                   </p>
 
-                  <!-- Status Badge -->
                   <div style="text-align:center; margin-bottom:24px;">
                     <span style="display:inline-block;
                                  background:%s; color:#ffffff;
-                                 padding:10px 28px; border-radius:30px;
-                                 font-weight:800; font-size:1rem;
-                                 letter-spacing:0.5px;">
+                                 padding:10px 28px;
+                                 border-radius:30px;
+                                 font-weight:800; font-size:1rem;">
                       %s %s
                     </span>
                   </div>
 
-                  <!-- Job Card -->
-                  <div style="background:#F0EEFF; border-radius:14px;
-                              padding:24px; margin-bottom:24px;
-                              border-left:5px solid #7C3AED;">
-                    <p style="font-weight:800; color:#1A1A2E;
+                  <div style="background:#F5F3FF;
+                              border-radius:14px; padding:24px;
+                              margin-bottom:24px;
+                              border-left:5px solid #D97706;">
+                    <p style="font-weight:800; color:#1E1030;
                                margin:0 0 8px; font-size:1.1rem;">
                       💼 %s
                     </p>
-                    <p style="color:#6B7280; margin:0; font-size:0.9rem;">
+                    <p style="color:#6B7280; margin:0;
+                               font-size:0.9rem;">
                       🏢 %s
                     </p>
                   </div>
 
-                  <!-- Message -->
                   <p style="color:#6B7280; line-height:1.8;
                              font-size:0.9rem; margin-bottom:32px;">
                     %s
                   </p>
 
-                  <!-- Button -->
                   <div style="text-align:center;">
-                    <a href="http://localhost:8080/student/applications"
+                    <a href="https://jobspark-u5vt.onrender.com/student/applications"
                        style="display:inline-block;
-                              background:linear-gradient(135deg,#7C3AED,#6D28D9);
+                              background:linear-gradient(
+                                135deg,#2D1B69,#D97706);
                               color:#ffffff; padding:14px 32px;
-                              border-radius:12px; text-decoration:none;
+                              border-radius:12px;
+                              text-decoration:none;
                               font-weight:700; font-size:0.95rem;">
                       View My Applications →
                     </a>
                   </div>
                 </div>
 
-                <!-- Footer -->
-                <div style="background:#F0EEFF; padding:24px 40px;
+                <div style="background:#F5F3FF; padding:24px 40px;
                             text-align:center;">
-                  <p style="color:#6B7280; font-size:0.78rem; margin:0;">
+                  <p style="color:#6B7280; font-size:0.78rem;
+                             margin:0;">
                     © 2026 JobSpark. All rights reserved.
                   </p>
-                  <p style="color:#9CA3AF; font-size:0.75rem; margin-top:4px;">
-                    This email was sent because you applied for a job on JobSpark.
+                  <p style="color:#9CA3AF; font-size:0.75rem;
+                             margin-top:4px;">
+                    This email was sent because you applied
+                    for a job on JobSpark.
                   </p>
                 </div>
-
               </div>
             </body>
             </html>
@@ -210,6 +187,7 @@ public class EmailService {
             );
     }
 
+    // ── OTP Template ─────────────────────────────────────────────
     private String buildOtpTemplate(String userName, String otp) {
         return """
             <!DOCTYPE html>
@@ -223,8 +201,8 @@ public class EmailService {
                           overflow:hidden;
                           box-shadow:0 8px 32px rgba(109,40,217,0.15);">
 
-                <!-- Header -->
-                <div style="background:linear-gradient(135deg,#1E1030,#2D1B69);
+                <div style="background:linear-gradient(
+                              135deg,#1E1030,#2D1B69);
                             padding:40px; text-align:center;">
                   <div style="font-size:2rem; font-weight:900;
                               color:#ffffff; letter-spacing:-1px;">
@@ -236,7 +214,6 @@ public class EmailService {
                   </p>
                 </div>
 
-                <!-- Body -->
                 <div style="padding:40px; text-align:center;">
                   <div style="font-size:2.5rem; margin-bottom:1rem;">
                     🔐
@@ -247,12 +224,11 @@ public class EmailService {
                   </h2>
                   <p style="color:#6B7280; line-height:1.7;
                              margin-bottom:2rem; font-size:0.9rem;">
-                    Use the OTP below to complete your
-                    JobSpark registration. This code expires
-                    in <strong>5 minutes</strong>.
+                    Use the OTP below to complete your JobSpark
+                    registration. This code expires in
+                    <strong>5 minutes</strong>.
                   </p>
 
-                  <!-- OTP Box -->
                   <div style="background:#F5F3FF;
                               border:2px dashed #D97706;
                               border-radius:16px; padding:24px;
@@ -276,10 +252,10 @@ public class EmailService {
                   </p>
                 </div>
 
-                <!-- Footer -->
                 <div style="background:#F5F3FF; padding:20px 40px;
                             text-align:center;">
-                  <p style="color:#9CA3AF; font-size:0.78rem; margin:0;">
+                  <p style="color:#9CA3AF; font-size:0.78rem;
+                             margin:0;">
                     © 2026 JobSpark. All rights reserved.
                   </p>
                   <p style="color:#C4B5FD; font-size:0.75rem;
